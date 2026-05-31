@@ -13,8 +13,9 @@ class Incident extends Controller
     {
          $query = LaporanHpio::query();
          
-         if($request->description){
+         if($request->nomor_ticket){
             $query->where('nomor_tiket', 'like' . '%' . $request->description . '%');
+         
          }
 
          if($request->stasiun){
@@ -22,16 +23,16 @@ class Incident extends Controller
          }
 
          if($request->status){
-            $query->where('status_laporan', '=' . $request->status);
+            $query->where('status_laporan', $request->status_laporan);
          }
          if($request->aset ){
             $query->where('kategori_aset', '=' . $request->aset);
          }
-         if($request->from_date){
-            $query->where('stasiun', 'like' . '%' . $request->stasiun . '%');
-         }
-         if($request->end_date){
-            $query->where('stasiun', 'like' . '%' . $request->stasiun . '%');
+         if($request->from_date && $request->end_date){
+           $query->whereBetween('tanggal_lapor', [
+            $request->from_date,
+            $request->end_date
+         ]);
          }
 
          $data_incident = $query->orderBy('timestamp', 'desc')

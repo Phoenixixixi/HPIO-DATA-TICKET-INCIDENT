@@ -14,19 +14,14 @@ export interface Props {
     }
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Incident Management',
-        href: '/incident',
-    },
-];
+
 
 
 
 export default function Incident({ incident_log, data_count }: Props) {
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title="Incident Management" />
             <IncidentView incident_log={incident_log} data_count={data_count} />
         </AppLayout>

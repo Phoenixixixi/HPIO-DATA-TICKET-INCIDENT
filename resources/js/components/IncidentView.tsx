@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,6 +37,8 @@ import { INCIDENT_STATIONS } from '../incident_data';
 import { Props } from '../pages/incident'
 import { router } from '@inertiajs/react';
 import { IncidentLog } from '@/types';
+import { useDebounce } from "use-debounce";
+import '../css/style.css'
 
 // Zod schema for Create Incident Form validation
 const incidentSchema = z.object({
@@ -52,6 +54,18 @@ const incidentSchema = z.object({
 
 type IncidentFormType = z.infer<typeof incidentSchema>;
 
+interface Search {
+  [key: string]: string;
+
+  nomor_ticket: string;
+  stasiun: string;
+  status_laporan: string;
+  kategori_aset: string;
+  bulan: string;
+  from_date: string;
+  end_date: string;
+}
+
 export default function IncidentView({ incident_log, data_count }: Props) {
   const queryClient = useQueryClient();
   const [, startTransition] = useTransition();
@@ -59,6 +73,29 @@ export default function IncidentView({ incident_log, data_count }: Props) {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryError, setCategoryError] = useState('');
+
+  const [searchData, setSearchData] = useState<Search>({
+    nomor_ticket: '',
+    stasiun: '',
+    status_laporan: '',
+    kategori_aset: '',
+    bulan: '',
+    from_date: '',
+    end_date: '',
+  });
+
+  const [filterData] = useDebounce(searchData, 500);
+
+  useEffect(() => {
+    router.get('/incident', filterData, {
+      preserveState: true,
+      replace: true,
+    });
+  }, [filterData])
+
+
+
+
 
   function CountSLAResponse(report: string, response: string): string {
     const waktuMelapor = new Date(report);
@@ -486,10 +523,15 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Ticket No / deskripsi..."
-                  value={filters.textSearch}
-                  onChange={(e) => startTransition(() => setFilter('textSearch', e.target.value))}
-                  className="w-full text-xs py-2 pl-8 pr-2 border border-gray-200 rounded-[4px] focus:ring-1 focus:ring-[#C8102E] focus:border-[#C8102E] outline-none bg-stone-50 select-text"
+                  placeholder="Ticket No"
+                  value={searchData.nomor_ticket || ""}
+                  onChange={(e) =>
+                    setSearchData((prev) => ({
+                      ...prev,
+                      nomor_ticket: e.target.value,
+                    }))
+                  }
+                  className="w-full text-xs py-2 pl-8 pr-2 border border-gray-200 rounded-[4px] focus:ring-1 focus:ring-[#C8102E] focus:border-[#C8102E] outline-none bg-stone-50 select-text text-black"
                 />
               </div>
             </div>
@@ -500,9 +542,14 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 Stasiun
               </label>
               <select
-                value={filters.stasiun}
-                onChange={(e) => setFilter('stasiun', e.target.value)}
-                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E]"
+                value={searchData.stasiun || ""}
+                onChange={(e) =>
+                  setSearchData((prev) => ({
+                    ...prev,
+                    stasiun: e.target.value,
+                  }))
+                }
+                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E] text-black"
               >
                 <option value="">Semua</option>
                 {INCIDENT_STATIONS.map((st) => (
@@ -514,21 +561,21 @@ export default function IncidentView({ incident_log, data_count }: Props) {
             </div>
 
             {/* Priority dropdown */}
-            <div className="flex flex-col gap-1">
+            {/* <div className="flex flex-col gap-1">
               <label className="text-[10px] font-mono font-bold text-gray-400 uppercase">
                 Prioritas
               </label>
               <select
                 value={filters.prioritas}
                 onChange={(e) => setFilter('prioritas', e.target.value)}
-                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E]"
+                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E] text-black"
               >
                 <option value="">Semua</option>
                 <option value="P1 (URGENT)">P1 (URGENT)</option>
                 <option value="P2 (CRITICAL)">P2 (CRITICAL)</option>
                 <option value="P3 (SERIOUS)">P3 (SERIOUS)</option>
               </select>
-            </div>
+            </div> */}
 
             {/* Status dropdown */}
             <div className="flex flex-col gap-1">
@@ -536,14 +583,19 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 Status
               </label>
               <select
-                value={filters.status}
-                onChange={(e) => setFilter('status', e.target.value)}
-                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E]"
+                value={searchData.status_laporan || ""}
+                onChange={(e) =>
+                  setSearchData((prev) => ({
+                    ...prev,
+                    status_laporan: e.target.value,
+                  }))
+                }
+                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E] text-black"
               >
                 <option value="">Semua</option>
-                <option value="Open">Open</option>
-                <option value="Closed">Closed</option>
-                <option value="On Escalation">On Escalation</option>
+                <option value="OPEN">Open</option>
+                <option value="CLOSE">Closed</option>
+                <option value="ON PROGRESS">On Progress</option>
               </select>
             </div>
 
@@ -553,9 +605,14 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 Kategori Aset
               </label>
               <select
-                value={filters.kategori_aset}
-                onChange={(e) => setFilter('kategori_aset', e.target.value)}
-                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E]"
+                value={searchData.kategori_aset || ""}
+                onChange={(e) =>
+                  setSearchData((prev) => ({
+                    ...prev,
+                    kategori_aset: e.target.value,
+                  }))
+                }
+                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E] text-black"
               >
                 <option value="">Semua</option>
                 {categories.map((cat) => (
@@ -572,14 +629,28 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 Bulan
               </label>
               <select
-                value={filters.bulan}
-                onChange={(e) => setFilter('bulan', e.target.value)}
-                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E]"
+                value={searchData.bulan || ""}
+                onChange={(e) =>
+                  setSearchData((prev) => ({
+                    ...prev,
+                    bulan: e.target.value,
+                  }))
+                }
+                className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E] text-black"
               >
                 <option value="">Semua</option>
-                <option value="Desember 2025">Desember 2025</option>
-                <option value="Januari 2026">Januari 2026</option>
-                <option value="Mei 2026">Mei 2026</option>
+                <option value="Januari">Januari</option>
+                <option value="Februari">Februari</option>
+                <option value="Maret">Maret</option>
+                <option value="April">April</option>
+                <option value="Mei">Mei</option>
+                <option value="Juni">Juni</option>
+                <option value="Juli">Juli</option>
+                <option value="Agustus">Agustus</option>
+                <option value="September">September</option>
+                <option value="Oktober">Oktober</option>
+                <option value="November">November</option>
+                <option value="Desember">Desember</option>
               </select>
             </div>
 
@@ -591,9 +662,14 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 </label>
                 <input
                   type="date"
-                  value={filters.tanggalLaporFrom}
-                  onChange={(e) => setFilter('tanggalLaporFrom', e.target.value)}
-                  className="w-full text-xs p-2 border border-gray-200 rounded-[4px] outline-none cursor-pointer focus:border-[#C8102E]"
+                  value={searchData.from_date || ""}
+                  onChange={(e) =>
+                    setSearchData((prev) => ({
+                      ...prev,
+                      from_date: e.target.value,
+                    }))
+                  }
+                  className="w-full text-xs p-2 border border-gray-200 rounded-[4px] outline-none cursor-pointer focus:border-[#C8102E] text-black"
                 />
               </div>
 
@@ -603,9 +679,14 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 </label>
                 <input
                   type="date"
-                  value={filters.tanggalLaporTo}
-                  onChange={(e) => setFilter('tanggalLaporTo', e.target.value)}
-                  className="w-full text-xs p-2 border border-gray-200 rounded-[4px] outline-none cursor-pointer focus:border-[#C8102E]"
+                  value={searchData.end_date || ""}
+                  onChange={(e) =>
+                    setSearchData((prev) => ({
+                      ...prev,
+                      end_date: e.target.value,
+                    }))
+                  }
+                  className="w-full text-xs p-2 border border-gray-200 rounded-[4px] outline-none cursor-pointer focus:border-[#C8102E] text-black"
                 />
               </div>
             </div>
@@ -673,9 +754,8 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                       <tr
                         key={inc.idNumber}
                         onClick={() => openDrawer(inc.idNumber)}
-                        className={`transition-colors cursor-pointer group ${
-                          isEven ? 'bg-white hover:bg-red-50/40' : 'bg-stone-50/60 hover:bg-red-50/40'
-                        }`}
+                        className={`transition-colors cursor-pointer group ${isEven ? 'bg-white hover:bg-red-50/40' : 'bg-stone-50/60 hover:bg-red-50/40'
+                          }`}
                       >
                         {/* 1. Nomor Tiket */}
                         <td className="px-4 py-3 pl-5 font-mono">
@@ -849,11 +929,10 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                     const isCl = s === 'CLOSE' || s === 'SELESAI' || s === 'DONE';
                     const isEs = s === 'ON PROGRESS' || s === 'ESCALATION';
                     return (
-                      <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-black uppercase ${
-                        isCl ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-black uppercase ${isCl ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : isEs ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
-                        : 'bg-red-50 text-red-700 border border-red-200'
-                      }`}>
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
                         {isCl ? 'CLOSED' : isEs ? 'ESCALATED' : 'OPEN'}
                       </span>
                     );

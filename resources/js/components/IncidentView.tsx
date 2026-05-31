@@ -634,162 +634,129 @@ export default function IncidentView({ incident_log, data_count }: Props) {
             ) : (
               <table className="w-full text-left border-collapse bg-white font-sans text-xs">
 
-                {/* STICKY HEADER MATRIX */}
-                <thead className="bg-[#1A1C1E] sticky top-0 z-10 border-b border-gray-200 text-white select-none">
-                  <tr className="uppercase tracking-widest leading-none font-mono text-[9px] font-black h-11">
-                    <th className="p-3 pl-5">Nomor Tiket</th>
-                    <th className="p-3">Tgl Lapor</th>
-                    <th className="p-3">Stasiun</th>
-                    <th className="p-3">Kategori Aset</th>
-                    <th className="p-3 text-center">Prioritas</th>
-                    <th className="p-3 text-center">Status</th>
-                    <th className="p-3 min-w-[200px]">Deskripsi Masalah</th>
-                    <th className="p-3">Nama Teknisi</th>
-                    <th className="p-3 text-center">Response</th>
-                    <th className="p-3 text-center">Solving</th>
-                    <th className="p-3 text-center">Eskalasi</th>
-                    <th className="p-3 pr-5 text-right w-16">Aksi</th>
+                {/* SLIM 7-COLUMN HEADER */}
+                <thead className="bg-[#1A1C1E] sticky top-0 z-10 text-white select-none">
+                  <tr className="uppercase tracking-widest leading-none font-mono text-[9px] font-black h-10">
+                    <th className="px-4 py-3 pl-5 min-w-[160px]">Nomor Tiket</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Tgl Lapor</th>
+                    <th className="px-4 py-3">Stasiun</th>
+                    <th className="px-4 py-3">Kategori</th>
+                    <th className="px-4 py-3 text-center">Prioritas</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 pr-5 text-right">Detail</th>
                   </tr>
                 </thead>
 
-                {/* ZEBRA STRIPE ROWS */}
-                <tbody className="divide-y divide-gray-100 select-text">
+                {/* COMPACT ROWS */}
+                <tbody className="divide-y divide-gray-100">
                   {incident_log.data_incident.data.map((inc, index) => {
                     const isEven = index % 2 === 0;
+
+                    // Normalize priority from raw DB value
+                    const priorityLabel = inc.skala_prioritas?.toUpperCase() === 'P1'
+                      ? 'P1 URGENT'
+                      : inc.skala_prioritas?.toUpperCase() === 'P2'
+                        ? 'P2 CRITICAL'
+                        : 'P3 SERIOUS';
+                    const priorityStyle = inc.skala_prioritas?.toUpperCase() === 'P1'
+                      ? 'text-red-700 bg-red-50 border border-red-200'
+                      : inc.skala_prioritas?.toUpperCase() === 'P2'
+                        ? 'text-[#854F0B] bg-[#FAEEDA] border border-orange-200'
+                        : 'text-emerald-800 bg-[#EAF3DE] border border-emerald-200';
+
+                    // Normalize status from raw DB value
+                    const statusUpper = (inc.status_laporan || '').toUpperCase();
+                    const isClosed = statusUpper === 'CLOSE' || statusUpper === 'SELESAI' || statusUpper === 'DONE';
+                    const isEscalated = statusUpper === 'ON PROGRESS' || statusUpper === 'ESCALATION';
+
                     return (
                       <tr
                         key={inc.idNumber}
-                        className={`hover:bg-gray-50/70 transition-colors h-12 uppercase font-sans ${isEven ? 'bg-white' : 'bg-stone-50/50'
-                          }`}
+                        onClick={() => openDrawer(inc.idNumber)}
+                        className={`transition-colors cursor-pointer group ${
+                          isEven ? 'bg-white hover:bg-red-50/40' : 'bg-stone-50/60 hover:bg-red-50/40'
+                        }`}
                       >
-
-                        {/* 1. Ticket Number Monospace */}
-                        <td className="p-3 pl-5 font-mono select-none" id={`td-ticket-${inc.id}`}>
+                        {/* 1. Nomor Tiket */}
+                        <td className="px-4 py-3 pl-5 font-mono">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-950">
+                            <span className="font-bold text-[11px] text-gray-900 tracking-tight whitespace-nowrap">
                               {inc.nomor_tiket}
                             </span>
                             <button
                               type="button"
-                              onClick={() => handleCopyTicket(inc.nomor_tiket)}
-                              className="text-gray-400 hover:text-[#C8102E] transition-all cursor-pointer inline-flex items-center justify-center p-1 rounded hover:bg-gray-100"
-                              title="Copy ticket number"
+                              onClick={(e) => { e.stopPropagation(); handleCopyTicket(inc.nomor_tiket); }}
+                              className="text-gray-300 hover:text-[#C8102E] transition-all cursor-pointer p-0.5 rounded opacity-0 group-hover:opacity-100"
+                              title="Salin nomor tiket"
                             >
-                              {copiedTicketNo === inc.nomor_tiket ? (
-                                <Check className="w-3 h-3 text-green-600 animate-scale" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
+                              {copiedTicketNo === inc.nomor_tiket
+                                ? <Check className="w-3 h-3 text-green-600" />
+                                : <Copy className="w-3 h-3" />}
                             </button>
                           </div>
                         </td>
 
                         {/* 2. Tanggal Lapor */}
-                        <td className="p-3 text-gray-600 whitespace-nowrap">
-                          {inc.tanggal_lapor}
+                        <td className="px-4 py-3 text-gray-500 font-mono text-[11px] whitespace-nowrap">
+                          {inc.tanggal_lapor
+                            ? new Date(inc.tanggal_lapor).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+                            : '-'}
                         </td>
 
                         {/* 3. Stasiun Pill */}
-                        <td className="p-3">
-                          <span className="text-[10px] font-mono font-black border border-gray-250 bg-stone-100/80 text-gray-700 px-2 py-0.5 rounded-[4px] leading-none whitespace-nowrap">
-                            {inc.stasiun_lokasi}
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black bg-stone-100 border border-gray-200 text-gray-600 px-2 py-0.5 rounded-[3px] whitespace-nowrap">
+                            <MapPin className="w-2.5 h-2.5 shrink-0" />
+                            {inc.stasiun_lokasi || '-'}
                           </span>
                         </td>
 
                         {/* 4. Kategori Aset */}
-                        <td className="p-3 text-gray-900 font-medium truncate max-w-[140px]" title={inc.kategori_aset}>
-                          {inc.kategori_aset}
-                        </td>
-
-                        {/* 5. Prioritas Tinted Badges */}
-                        <td className="p-3 text-center">
-                          {inc.prioritas === 'P1 (URGENT)' ? (
-                            <span className="text-[9px] font-mono block mx-auto text-red-700 bg-[#FCEBEB] px-2 py-1 rounded-[4px] uppercase font-bold text-center leading-none">
-                              P1 URGENT
-                            </span>
-                          ) : inc.prioritas === 'P2 (CRITICAL)' ? (
-                            <span className="text-[9px] font-mono block mx-auto text-[#854F0B] bg-[#FAEEDA] px-2 py-1 rounded-[4px] uppercase font-bold text-center leading-none">
-                              P2 CRITICAL
-                            </span>
-                          ) : (
-                            <span className="text-[9px] font-mono block mx-auto text-emerald-800 bg-[#EAF3DE] px-2 py-1 rounded-[4px] uppercase font-bold text-center leading-none">
-                              P3 SERIOUS
-                            </span>
-                          )}
-                        </td>
-
-                        {/* 6. Status Badges */}
-                        <td className="p-3 text-center">
-                          {inc.status_laporan === 'CLOSE' ? (
-                            <span className="inline-flex items-center gap-1.5 text-[9px] font-bold font-mono text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-[4px]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              <span>CLOSED</span>
-                            </span>
-                          ) : inc.status === 'ON PROGRESS' ? (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-bold font-mono text-yellow-800 bg-yellow-50 px-2 py-1 rounded-[4px]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                              <ArrowUpRight className="w-3 h-3 text-yellow-500 shrink-0" />
-                              <span>ESCALATED</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[9px] font-bold font-mono text-red-700 bg-red-50 px-2.5 py-1 rounded-[4px]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#C8102E]"></span>
-                              <span>OPEN</span>
-                            </span>
-                          )}
-                        </td>
-
-                        {/* 7. Deskripsi (Truncate with hover) */}
-                        <td className="p-3 text-gray-600 truncate max-w-[280px] break-all relative group select-none">
-                          <span className="hover:text-gray-950 font-medium">
-                            {inc.deskripsi_masalah}
+                        <td className="px-4 py-3">
+                          <span className="text-[11px] text-gray-700 font-semibold">
+                            {inc.kategori_aset || '-'}
                           </span>
-
-                          {/* Hover Tooltip Popup window */}
-                          <div className="absolute hidden group-hover:block bg-[#1A1C1E] text-white text-[10px] p-3 rounded-[4px] shadow-lg z-30 max-w-sm border border-neutral-800 -top-12 left-3 leading-normal font-sans tracking-wide">
-                            <span className="font-bold text-orange-400 block pb-0.5">FAULT LOG DESKRIPSI:</span>
-                            {inc.deskripsi_masalah}
-                          </div>
-                        </td>
-
-                        {/* 8. Nama Teknisi */}
-                        <td className="p-3 text-gray-800 font-medium whitespace-nowrap">
-                          {inc.nama_teknisi}
-                        </td>
-
-                        {/* 9. Response Time hh:mm */}
-                        <td className="p-3 text-center font-mono font-bold text-gray-600">
-                          {inc.waktu_respon_teknisi}
-                        </td>
-
-                        {/* 10. Solving Time hh:mm */}
-                        <td className="p-3 text-center font-mono font-bold text-gray-600">
-                          {inc.waktu_selesai}
-                        </td>
-
-                        {/* 11. Status Eskalasi (nullable block) */}
-                        <td className="p-3 text-center">
-                          {inc.status_eskalasi ? (
-                            <span className="text-[10px] bg-sky-50 border border-sky-150 text-sky-700 px-2 py-0.5 rounded-[3px] font-mono leading-none">
-                              {inc.status_eskalasi}
+                          {inc.equipment && (
+                            <span className="block text-[10px] text-gray-400 font-normal mt-0.5 truncate max-w-[120px]" title={inc.equipment}>
+                              {inc.equipment}
                             </span>
-                          ) : (
-                            <span className="text-gray-300 font-mono">-</span>
                           )}
                         </td>
 
-                        {/* 12. Eye icon action button */}
-                        <td className="p-3 pr-5 text-right select-none">
-                          <button
-                            type="button"
-                            onClick={() => openDrawer(inc.idNumber)}
-                            className="bg-stone-100 hover:bg-[#C8102E] hover:text-white transition-all text-gray-500 p-2 rounded-[4px] cursor-pointer inline-flex items-center justify-center border border-gray-200"
-                            title="See detailed information"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
+                        {/* 5. Prioritas Badge */}
+                        <td className="px-4 py-3 text-center">
+                          <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-[3px] uppercase leading-none whitespace-nowrap ${priorityStyle}`}>
+                            {priorityLabel}
+                          </span>
                         </td>
 
+                        {/* 6. Status Badge */}
+                        <td className="px-4 py-3 text-center">
+                          {isClosed ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-[3px]">
+                              <CheckCircle className="w-2.5 h-2.5" />
+                              CLOSED
+                            </span>
+                          ) : isEscalated ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-yellow-800 bg-yellow-50 border border-yellow-200 px-2 py-0.5 rounded-[3px]">
+                              <ArrowUpRight className="w-2.5 h-2.5" />
+                              ESCALATED
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-[3px]">
+                              <AlertCircle className="w-2.5 h-2.5" />
+                              OPEN
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 7. Detail Button */}
+                        <td className="px-4 py-3 pr-5 text-right">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 group-hover:text-[#C8102E] transition-colors">
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Detail</span>
+                          </span>
+                        </td>
                       </tr>
                     );
                   })}
@@ -854,44 +821,57 @@ export default function IncidentView({ incident_log, data_count }: Props) {
             <div className="p-6 bg-[#1A1C1E] text-white flex justify-between items-start shrink-0">
               <div className="space-y-1">
                 <span className="text-[9px] font-mono font-bold text-[#C8102E] uppercase tracking-widest block">
-                  INCIDENT MANAGER DETAIL AUDIT
+                  INCIDENT DETAIL AUDIT
                 </span>
-                <h3 className="text-base font-black font-mono leading-none tracking-tight">
+                <h3 className="text-sm font-black font-mono leading-tight tracking-tight">
                   {selectedIncident.nomor_tiket}
                 </h3>
 
-                <div className="flex items-center gap-1.5 pt-2">
-                  {/* Prioritas flag */}
-                  {selectedIncident.prioritas === 'P1 (URGENT)' ? (
-                    <span className="text-[9px] font-mono text-red-700 bg-[#FCEBEB] px-2 py-0.5 rounded uppercase font-bold">
+                <div className="flex items-center gap-1.5 pt-2 flex-wrap">
+                  {/* Prioritas badge - based on DB field skala_prioritas */}
+                  {selectedIncident.skala_prioritas?.toUpperCase() === 'P1' ? (
+                    <span className="text-[9px] font-mono text-red-700 bg-[#FCEBEB] border border-red-200 px-2 py-0.5 rounded uppercase font-bold">
                       P1 URGENT
                     </span>
-                  ) : selectedIncident.prioritas === 'P2 (CRITICAL)' ? (
-                    <span className="text-[9px] font-mono text-[#854F0B] bg-[#FAEEDA] px-2 py-0.5 rounded uppercase font-bold">
+                  ) : selectedIncident.skala_prioritas?.toUpperCase() === 'P2' ? (
+                    <span className="text-[9px] font-mono text-[#854F0B] bg-[#FAEEDA] border border-orange-200 px-2 py-0.5 rounded uppercase font-bold">
                       P2 CRITICAL
                     </span>
                   ) : (
-                    <span className="text-[9px] font-mono text-emerald-800 bg-[#EAF3DE] px-2 py-0.5 rounded uppercase font-bold">
+                    <span className="text-[9px] font-mono text-emerald-800 bg-[#EAF3DE] border border-emerald-200 px-2 py-0.5 rounded uppercase font-bold">
                       P3 SERIOUS
                     </span>
                   )}
 
-                  {/* Status chip */}
-                  <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-black uppercase ${selectedIncident.status === 'Closed'
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-250'
-                    : selectedIncident.status === 'On Escalation'
-                      ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
-                      : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}>
-                    {selectedIncident.status}
-                  </span>
+                  {/* Status chip - based on DB field status_laporan */}
+                  {(() => {
+                    const s = (selectedIncident.status_laporan || '').toUpperCase();
+                    const isCl = s === 'CLOSE' || s === 'SELESAI' || s === 'DONE';
+                    const isEs = s === 'ON PROGRESS' || s === 'ESCALATION';
+                    return (
+                      <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-black uppercase ${
+                        isCl ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : isEs ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
+                        {isCl ? 'CLOSED' : isEs ? 'ESCALATED' : 'OPEN'}
+                      </span>
+                    );
+                  })()}
+
+                  {/* Eskalasi chip */}
+                  {selectedIncident.status_eskalasi && selectedIncident.status_eskalasi !== 'NO' && (
+                    <span className="text-[9px] font-mono text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded uppercase font-bold">
+                      ESK: {selectedIncident.status_eskalasi}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={closeDrawer}
-                className="text-white/60 hover:text-white hover:bg-white/5 transition-all p-1.5 rounded-[4px] cursor-pointer"
+                className="text-white/60 hover:text-white hover:bg-white/5 transition-all p-1.5 rounded-[4px] cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -907,33 +887,43 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                   <span>Info Umum Sistem</span>
                 </h4>
 
-                <div className="grid grid-cols-2 gap-4 bg-stone-50 p-4 border border-gray-200 rounded-[4px]">
+                <div className="grid grid-cols-2 gap-3 bg-stone-50 p-4 border border-gray-200 rounded-[4px]">
                   <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">tanggal lapor</span>
-                    <p className="font-semibold text-gray-900 mt-0.5">{selectedIncident.tanggal_lapor}</p>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Tanggal Lapor</span>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.tanggal_lapor}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">stasiun monitor</span>
-                    <p className="font-semibold text-gray-900 mt-0.5">{selectedIncident.stasiun}</p>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Stasiun</span>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.stasiun_lokasi}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">kategori aset</span>
-                    <p className="font-semibold text-[#C8102E] mt-0.5 uppercase">{selectedIncident.kategori_aset}</p>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Kategori Aset</span>
+                    <p className="font-semibold text-[#C8102E] mt-0.5 uppercase text-xs">{selectedIncident.kategori_aset}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">bulan slip</span>
-                    <p className="font-semibold text-gray-900 mt-0.5">{selectedIncident.bulan}</p>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Equipment</span>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.equipment || '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Bulan</span>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.bulan}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">WR Doc No</span>
+                    <p className="font-mono text-gray-900 mt-0.5 text-xs">{selectedIncident.wr_doc_nomor || '-'}</p>
                   </div>
                   <div className="col-span-2 pt-2 border-t border-gray-150/50">
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">pelapor</span>
-                    <p className="font-semibold text-gray-900 mt-0.5 flex items-center gap-1">
-                      <User className="w-3.5 h-3.5 text-stone-400" />
-                      {selectedIncident.nama_pelapor} (Receiver Dispatcher: {selectedIncident.nama_penerima_laporan})
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Pelapor &rarr; Penerima</span>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs flex items-center gap-1.5">
+                      <User className="w-3 h-3 text-stone-400 shrink-0" />
+                      {selectedIncident.nama_pelapor}
+                      <span className="text-gray-300 font-normal">→</span>
+                      {selectedIncident.nama_penerima_laporan}
                     </p>
                   </div>
                   <div className="col-span-2 pt-2 border-t border-gray-150/50">
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">deskripsi masalah</span>
-                    <p className="text-gray-900 mt-1 leading-relaxed font-sans bg-white p-3 border border-gray-150 rounded-[3.5px]">
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Deskripsi Masalah</span>
+                    <p className="text-gray-800 mt-1 leading-relaxed font-sans text-xs bg-white p-3 border border-gray-150 rounded-[3.5px]">
                       {selectedIncident.deskripsi_masalah}
                     </p>
                   </div>
@@ -956,10 +946,10 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                       <div className="w-2 h-2 rounded-full bg-[#C8102E]"></div>
                     </div>
                     <div className="flex justify-between items-baseline font-mono text-[9px]">
-                      <span className="uppercase font-bold text-gray-950 font-sans text-xs">Waktu Melapor (Tele-log)</span>
-                      <span className="text-gray-400 font-bold">{new Date(selectedIncident.waktu_melapor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="uppercase font-bold text-gray-950 font-sans text-xs">Waktu Melapor</span>
+                      <span className="text-gray-400 font-bold">{selectedIncident.waktu_melapor ? new Date(selectedIncident.waktu_melapor).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5">{new Date(selectedIncident.waktu_melapor).toLocaleDateString()}</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{selectedIncident.waktu_melapor ? new Date(selectedIncident.waktu_melapor).toLocaleDateString('id-ID') : '-'}</p>
                   </div>
 
                   {/* Step 2: Respon */}
@@ -968,11 +958,13 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                       <div className="w-2 h-2 rounded-full bg-orange-500"></div>
                     </div>
                     <div className="flex justify-between items-baseline font-mono text-[9px]">
-                      <span className="uppercase font-bold text-gray-950 font-sans text-xs">Waktu Respon (SLA Gateway)</span>
-                      <span className="text-gray-400 font-bold">{new Date(selectedIncident.respon_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="uppercase font-bold text-gray-950 font-sans text-xs">Waktu Respon Teknisi</span>
+                      <span className="text-gray-400 font-bold">{selectedIncident.waktu_respon_teknisi ? new Date(selectedIncident.waktu_respon_teknisi).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
                     </div>
-                    <p className='text-[.5rem]'>Response Date {new Date(selectedIncident.respon_time).toLocaleDateString()}</p>
-                    <p className="text-[11px] text-gray-500 mt-0.5">Response Time: <span className="text-[#C8102E] font-bold font-mono text-[10px]">{CountSLAResponse(selectedIncident.waktu_melapor, selectedIncident.respon_time)}</span></p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{selectedIncident.waktu_respon_teknisi ? new Date(selectedIncident.waktu_respon_teknisi).toLocaleDateString('id-ID') : '-'}</p>
+                    {selectedIncident.respon_time && selectedIncident.respon_time !== '0' && (
+                      <p className="text-[11px] text-gray-500 mt-0.5">Respon Time: <span className="text-[#C8102E] font-bold font-mono text-[10px]">{selectedIncident.respon_time}</span></p>
+                    )}
                   </div>
 
                   {/* Step 3: Selesai */}
@@ -989,11 +981,11 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                       <span className="text-gray-400 font-bold">
 
                         {selectedIncident.waktu_selesai
-                          ? new Date(selectedIncident.waktu_selesai).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          ? new Date(selectedIncident.waktu_selesai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                           : 'ONGOING'}
                       </span>
                     </div>
-                    <p className='text-[.5rem]'>Response Date {new Date(selectedIncident.waktu_selesai).toLocaleDateString()}</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{selectedIncident.waktu_selesai ? new Date(selectedIncident.waktu_selesai).toLocaleDateString('id-ID') : ''}</p>
                     <p className="text-[11px] text-gray-500 mt-0.5">
                       {selectedIncident.waktu_selesai ? (
                         <>
@@ -1018,33 +1010,31 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                   <span>Teknisi & Administrasi Penanganan</span>
                 </h4>
 
-                <div className="grid grid-cols-2 gap-4 bg-stone-50 p-4 border border-gray-200 rounded-[4px]">
+                <div className="grid grid-cols-2 gap-3 bg-stone-50 p-4 border border-gray-200 rounded-[4px]">
                   <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">nama teknisi</span>
-                    <p className="font-semibold text-gray-900 mt-0.5">{selectedIncident.nama_teknisi}</p>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Nama Teknisi</span>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.nama_teknisi || '-'}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">wr doc id reference</span>
-                    <p className="font-mono text-gray-900 font-semibold mt-0.5">
-                      {selectedIncident.wr_doc_no || 'Pending Creation'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">eskalasi status</span>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Status Eskalasi</span>
                     <p className="font-semibold text-gray-900 mt-0.5">
-                      {selectedIncident.status_eskalasi ? (
+                      {selectedIncident.status_eskalasi && selectedIncident.status_eskalasi !== 'NO' ? (
                         <span className="text-[9px] bg-sky-50 border border-sky-150 text-sky-700 px-2 py-0.5 rounded-[3px] font-mono">
                           {selectedIncident.status_eskalasi}
                         </span>
                       ) : (
-                        'No escalation'
+                        <span className="text-xs text-gray-500">Tidak ada eskalasi</span>
                       )}
                     </p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">merged document code</span>
-                    <p className="font-mono text-gray-900 font-semibold mt-0.5">
-                      {selectedIncident.merged_doc_id || '-'}
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Solving Time</span>
+                    <p className="font-mono text-emerald-700 font-bold mt-0.5 text-xs">{selectedIncident.solving_time || '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">WR Doc No</span>
+                    <p className="font-mono text-gray-900 font-semibold mt-0.5 text-xs">
+                      {selectedIncident.wr_doc_nomor || 'Pending'}
                     </p>
                   </div>
                 </div>

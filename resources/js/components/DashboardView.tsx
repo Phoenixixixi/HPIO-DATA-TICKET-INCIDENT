@@ -215,7 +215,7 @@ export default function DashboardView({
   ];
 
   // Extract month and date range dynamically from database incidents
-  let dateRangeText = data_dashboard.month_start; // fallback
+  let dateRangeText = data_dashboard.month_data; // fallback
   if (incidents.length > 0) {
     const firstIncident = incidents[0];
     if (firstIncident.bulan) {
@@ -706,7 +706,7 @@ export default function DashboardView({
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-4 border-b border-gray-100 pb-2">Station Health</h3>
             <div className="space-y-4">
               {data_dashboard.data_station_count
-                .filter(station => station.stasiun_lokasi.toLowerCase() !== "belum teridentifikasi")
+                .filter(station => station.stasiun.toLowerCase() !== "belum teridentifikasi")
                 .map(station => (
                   <div
                     key={station.stasiun_lokasi}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\LaporanHpio;
+use App\Models\ShiftSchedule;
 use Carbon\Carbon;
 
 class Dashboard extends Controller
@@ -20,14 +21,14 @@ class Dashboard extends Controller
 
         // 1. Fetch all database records for incidents/laporan
         $db_incidents = (clone $baseQuery)
-        ->orderBy('timestamp', 'desc')
+        ->orderBy('created_at', 'desc')
         ->get();
 
         // 2. Map the database records to the UI's Incident interface shape
         $mapped_incidents = $db_incidents->map(function ($item) {
             // Map DB status to UI status
             $status = 'Open';
-            $status_upper = strtoupper($item->status_laporan);
+            $status_upper = strtoupper($item->status);
             if ($status_upper === 'CLOSE' || $status_upper === 'SELESAI' || $status_upper === 'DONE') {
                 $status = 'Closed';
             } elseif ($status_upper === 'ON PROGRESS' || $status_upper === 'PROSES' || $status_upper === 'ESCALATION') {
@@ -36,7 +37,7 @@ class Dashboard extends Controller
 
             // Map DB priority to UI priority
             $priority = 'P3 (SERIOUS)';
-            $prio_upper = strtoupper($item->skala_prioritas);
+            $prio_upper = strtoupper($item->prioritas);
             if ($prio_upper === 'P1' || str_contains($prio_upper, 'URGENT') || str_contains($prio_upper, 'TINGGI')) {
                 $priority = 'P1 (URGENT)';
             } elseif ($prio_upper === 'P2' || str_contains($prio_upper, 'CRITICAL') || str_contains($prio_upper, 'SEDANG')) {
@@ -44,31 +45,32 @@ class Dashboard extends Controller
             }
 
             return [
-                'id' => $item->idNumber,
-                'timestamp' => $item->timestamp,
+                'id' => $item->id,
                 'nomor_tiket' => $item->nomor_tiket,
                 'tanggal_lapor' => $item->tanggal_lapor,
                 'nama_pelapor' => $item->nama_pelapor,
                 'nama_penerima_laporan' => $item->nama_penerima_laporan,
-                'stasiun' => $item->stasiun_lokasi,
+                'stasiun' => $item->stasiun,
                 'kategori_aset' => $item->kategori_aset,
                 'deskripsi_masalah' => $item->deskripsi_masalah,
                 'prioritas' => $priority,
                 'status' => $status,
                 'nama_teknisi' => $item->nama_teknisi,
                 'waktu_melapor' => $item->waktu_melapor,
-                'waktu_respon' => $item->waktu_respon_teknisi,
+                'waktu_respon' => $item->waktu_respon,
                 'waktu_selesai' => $item->waktu_selesai,
-                'response_time' => $item->respon_time,
+                'response_time' => $item->response_time,
                 'solving_time' => $item->solving_time,
-                'wr_doc_no' => $item->wr_doc_nomor,
+                'wr_doc_no' => $item->wr_doc_no,
                 'status_eskalasi' => $item->status_eskalasi,
                 'bulan' => $item->bulan,
+                'merged_doc_id' => $item->merged_doc_id,
+                'merged_doc_url' => $item->merged_doc_url,
             ];
         });
 
         // 3. Count only active or open incidents from database (for Open Orders KPI)
-        $data_open = (clone $baseQuery)->whereIn('status_laporan', ['OPEN', 'BARU'])->count();
+        $data_open = (clone $baseQuery)->whereIn('status', ['OPEN', 'BARU'])->count();
 
         // 4. Group by category for category chart
         $data_perangkat = (clone $baseQuery)->selectRaw('kategori_aset, COUNT(*) as total')
@@ -76,10 +78,13 @@ class Dashboard extends Controller
             ->get();
 
         //5.count station
-        $data_station_count = (clone $baseQuery)->selectRaw('stasiun_lokasi, COUNT(*) as total')
-            ->groupBy('stasiun_lokasi')
+        $data_station_count = (clone $baseQuery)->selectRaw('stasiun, COUNT(*) as total')
+            ->groupBy('stasiun')
             ->get();
 
+
+        $currentMonthStr = Carbon::now()->format('Y-m');
+        $shift_schedules = ShiftSchedule::where('month', $currentMonthStr)->get();
 
         $data_dashboard = [
             'data_perangkat' => $data_perangkat,
@@ -88,6 +93,8 @@ class Dashboard extends Controller
             'month_start' => $currentMonthStart,
             'month_end' => $currentMonthEnd,
             'data_station_count' => $data_station_count,
+            'shift_schedules' => $shift_schedules,
+            'today_day' => Carbon::now()->day,
         ];
         
 

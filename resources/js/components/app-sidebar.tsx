@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard, ShieldAlert, Building2, FileCode2, BookOpen, Folder, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Building2, FileCode2, BookOpen, Folder, ClipboardList, CalendarDays } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -12,11 +12,6 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard Hub',
         url: '/dashboard',
         icon: LayoutDashboard,
-    },
-    {
-        title: 'Report Problem',
-        url: '/report-problem',
-        icon: ClipboardList,
     },
     {
         title: 'Incident Management',
@@ -28,10 +23,15 @@ const mainNavItems: NavItem[] = [
         url: '/stations',
         icon: Building2,
     },
+    // {
+    //     title: 'Architecture Blueprints',
+    //     url: '/blueprints',
+    //     icon: FileCode2,
+    // },
     {
-        title: 'Architecture Blueprints',
-        url: '/blueprints',
-        icon: FileCode2,
+        title: 'Shift Schedule',
+        url: '/shift-schedule',
+        icon: CalendarDays,
     },
 ];
 

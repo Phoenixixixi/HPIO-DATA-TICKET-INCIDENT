@@ -6,37 +6,37 @@ use Illuminate\Database\Eloquent\Model;
 
 class LaporanHpio extends Model
 {
-   protected $table = 'laporan_hpio';
+    protected $table = 'incidents';
 
-    protected $primaryKey = 'idNumber';
+    protected $primaryKey = 'id';
 
     protected $keyType = 'string';
 
     public $incrementing = false;
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
-        'idNumber',
-        'timestamp',
+        'id',
         'nomor_tiket',
         'tanggal_lapor',
         'nama_pelapor',
         'nama_penerima_laporan',
-        'stasiun_lokasi',
+        'stasiun',
         'kategori_aset',
-        'equipment',
         'deskripsi_masalah',
-        'skala_prioritas',
-        'status_laporan',
+        'prioritas',
+        'status',
         'nama_teknisi',
         'waktu_melapor',
-        'waktu_respon_teknisi',
+        'waktu_respon',
         'waktu_selesai',
-        'respon_time',
+        'response_time',
         'solving_time',
-        'wr_doc_nomor',
+        'wr_doc_no',
         'status_eskalasi',
         'bulan',
+        'merged_doc_id',
+        'merged_doc_url',
     ];
 }

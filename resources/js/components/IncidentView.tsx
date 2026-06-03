@@ -59,7 +59,7 @@ interface Search {
 
   nomor_ticket: string;
   stasiun: string;
-  status_laporan: string;
+  status: string;
   kategori_aset: string;
   bulan: string;
   from_date: string;
@@ -77,12 +77,14 @@ export default function IncidentView({ incident_log, data_count }: Props) {
   const [searchData, setSearchData] = useState<Search>({
     nomor_ticket: '',
     stasiun: '',
-    status_laporan: '',
+    status: '',
     kategori_aset: '',
     bulan: '',
     from_date: '',
     end_date: '',
   });
+
+  console.log(incident_log)
 
   const [filterData] = useDebounce(searchData, 500);
 
@@ -92,6 +94,21 @@ export default function IncidentView({ incident_log, data_count }: Props) {
       replace: true,
     });
   }, [filterData])
+
+  function resetFilter() {
+    setSearchData({
+      nomor_ticket: '',
+      stasiun: '',
+      status_laporan: '',
+      kategori_aset: '',
+      bulan: '',
+      from_date: '',
+      end_date: '',
+    })
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const activePage = params.get('page') || 1
 
 
 
@@ -343,11 +360,6 @@ export default function IncidentView({ incident_log, data_count }: Props) {
   const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
 
   // Guard current page range
-  const activePage = Math.min(currentPage, totalPages);
-
-  const startIndex = (activePage - 1) * rowsPerPage;
-  const endIndex = Math.min(startIndex + rowsPerPage, totalRows);
-  const paginatedIncidents = filteredIncidents.slice(startIndex, endIndex);
 
   // Clipboard copy feedback helper
   const handleCopyTicket = (ticketNo: string) => {
@@ -357,7 +369,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
   };
 
   // Selected incident details for drawer
-  const selectedIncident = incident_log.data_incident.data.find((inc) => inc.idNumber === activeIncidentId);
+  const selectedIncident = incident_log.data_incident.data.find((inc) => inc.id === activeIncidentId);
 
   // React Hook Form setups
   const {
@@ -505,7 +517,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
               Fringe Filter Matrix
             </span>
             <button
-              onClick={resetFilters}
+              onClick={resetFilter}
               className="text-[10px] text-[#C8102E] font-mono font-bold tracking-wider hover:underline uppercase"
             >
               Reset Filters
@@ -583,19 +595,19 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 Status
               </label>
               <select
-                value={searchData.status_laporan || ""}
+                value={searchData.status || ""}
                 onChange={(e) =>
                   setSearchData((prev) => ({
                     ...prev,
-                    status_laporan: e.target.value,
+                    status: e.target.value,
                   }))
                 }
                 className="text-xs p-2 border border-gray-200 rounded-[4px] outline-none bg-white cursor-pointer hover:border-gray-300 focus:border-[#C8102E] text-black"
               >
                 <option value="">Semua</option>
-                <option value="OPEN">Open</option>
-                <option value="CLOSE">Closed</option>
-                <option value="ON PROGRESS">On Progress</option>
+                <option value="Open">Open</option>
+                <option value="Closed">Closed</option>
+                <option value="On Escalation">On Progress</option>
               </select>
             </div>
 
@@ -702,7 +714,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
               <div className="py-20 text-center text-sm font-semibold text-gray-500 font-mono animate-pulse">
                 INITIALIZING CORE QUERY TELEMETRY RETRIEVALS...
               </div>
-            ) : paginatedIncidents.length === 0 ? (
+            ) : incident_log.data_incident.data.length === 0 ? (
               <div className="py-20 text-center">
                 <HelpCircle className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                 <span className="text-sm font-bold text-gray-900 leading-none">
@@ -734,26 +746,26 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                     const isEven = index % 2 === 0;
 
                     // Normalize priority from raw DB value
-                    const priorityLabel = inc.skala_prioritas?.toUpperCase() === 'P1'
+                    const priorityLabel = inc.prioritas?.toUpperCase().includes('P1')
                       ? 'P1 URGENT'
-                      : inc.skala_prioritas?.toUpperCase() === 'P2'
+                      : inc.prioritas?.toUpperCase().includes('P2')
                         ? 'P2 CRITICAL'
                         : 'P3 SERIOUS';
-                    const priorityStyle = inc.skala_prioritas?.toUpperCase() === 'P1'
+                    const priorityStyle = inc.prioritas?.toUpperCase().includes('P1')
                       ? 'text-red-700 bg-red-50 border border-red-200'
-                      : inc.skala_prioritas?.toUpperCase() === 'P2'
+                      : inc.prioritas?.toUpperCase().includes('P2')
                         ? 'text-[#854F0B] bg-[#FAEEDA] border border-orange-200'
                         : 'text-emerald-800 bg-[#EAF3DE] border border-emerald-200';
 
                     // Normalize status from raw DB value
-                    const statusUpper = (inc.status_laporan || '').toUpperCase();
-                    const isClosed = statusUpper === 'CLOSE' || statusUpper === 'SELESAI' || statusUpper === 'DONE';
-                    const isEscalated = statusUpper === 'ON PROGRESS' || statusUpper === 'ESCALATION';
+                    const statusUpper = (inc.status || '').toUpperCase();
+                    const isClosed = statusUpper === 'CLOSED' || statusUpper === 'SELESAI' || statusUpper === 'DONE';
+                    const isEscalated = statusUpper === 'ON ESCALATION' || statusUpper === 'ESCALATION';
 
                     return (
                       <tr
                         key={inc.idNumber}
-                        onClick={() => openDrawer(inc.idNumber)}
+                        onClick={() => openDrawer(inc.id)}
                         className={`transition-colors cursor-pointer group ${isEven ? 'bg-white hover:bg-red-50/40' : 'bg-stone-50/60 hover:bg-red-50/40'
                           }`}
                       >
@@ -787,7 +799,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black bg-stone-100 border border-gray-200 text-gray-600 px-2 py-0.5 rounded-[3px] whitespace-nowrap">
                             <MapPin className="w-2.5 h-2.5 shrink-0" />
-                            {inc.stasiun_lokasi || '-'}
+                            {inc.stasiun || '-'}
                           </span>
                         </td>
 
@@ -849,7 +861,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
           <div className="bg-white px-6 py-4 border-t border-gray-200 flex justify-between items-center text-xs font-sans text-gray-600 select-none">
 
             <div>
-              Menampilkan <span className="font-bold text-gray-950">{startIndex + 1}</span> s/d
+              Menampilkan <span className="font-bold text-gray-950">{1}</span> s/d
               <span className="font-bold text-gray-950"> {incident_log.data_incident.last_page}</span> dari{' '}
               <span className="font-bold text-gray-950">{totalRows}</span> tiket
             </div>
@@ -858,20 +870,20 @@ export default function IncidentView({ incident_log, data_count }: Props) {
               <button
                 type="button"
                 disabled={activePage === 1}
-                onClick={() => handlePagination(incident_log.data_incident.from - 1)}
+                onClick={() => handlePagination(incident_log.data_incident.current_page - 1)}
                 className="p-1.5 border border-gray-200 rounded-[4px] bg-white text-gray-700 hover:bg-stone-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
               <div className="font-mono text-[11px] font-bold text-gray-900 bg-stone-100 px-3 py-1 rounded-[4px]">
-                {activePage} / {totalPages}
+                {incident_log.data_incident.current_page} / {incident_log.data_incident.last_page}
               </div>
 
               <button
                 type="button"
-                disabled={activePage === totalPages}
-                onClick={() => handlePagination(incident_log.data_incident.from + 1)}
+                disabled={activePage === incident_log.data_incident.last_page}
+                onClick={() => handlePagination(incident_log.data_incident.current_page + 1)}
                 className="p-1.5 border border-gray-200 rounded-[4px] bg-white text-gray-700 hover:bg-stone-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -973,15 +985,15 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                   </div>
                   <div>
                     <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Stasiun</span>
-                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.stasiun_lokasi}</p>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.stasiun}</p>
                   </div>
                   <div>
                     <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Kategori Aset</span>
                     <p className="font-semibold text-[#C8102E] mt-0.5 uppercase text-xs">{selectedIncident.kategori_aset}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Equipment</span>
-                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.equipment || '-'}</p>
+                    <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Priority</span>
+                    <p className="font-semibold text-gray-900 mt-0.5 text-xs">{selectedIncident.prioritas || '-'}</p>
                   </div>
                   <div>
                     <span className="text-[9px] font-mono font-bold text-gray-400 block uppercase select-none">Bulan</span>
@@ -1026,9 +1038,13 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                     </div>
                     <div className="flex justify-between items-baseline font-mono text-[9px]">
                       <span className="uppercase font-bold text-gray-950 font-sans text-xs">Waktu Melapor</span>
-                      <span className="text-gray-400 font-bold">{selectedIncident.waktu_melapor ? new Date(selectedIncident.waktu_melapor).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                      <span className="text-gray-400 font-bold">
+                        {selectedIncident.waktu_melapor
+                          ? selectedIncident.waktu_melapor.substring(11, 16)
+                          : '-'}
+                      </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5">{selectedIncident.waktu_melapor ? new Date(selectedIncident.waktu_melapor).toLocaleDateString('id-ID') : '-'}</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{selectedIncident.waktu_melapor ? new Date(selectedIncident.waktu_melapor).toLocaleDateString() : '-'}</p>
                   </div>
 
                   {/* Step 2: Respon */}
@@ -1038,11 +1054,11 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                     </div>
                     <div className="flex justify-between items-baseline font-mono text-[9px]">
                       <span className="uppercase font-bold text-gray-950 font-sans text-xs">Waktu Respon Teknisi</span>
-                      <span className="text-gray-400 font-bold">{selectedIncident.waktu_respon_teknisi ? new Date(selectedIncident.waktu_respon_teknisi).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                      <span className="text-gray-400 font-bold">{selectedIncident.waktu_respon ? selectedIncident.waktu_respon.substring(11, 16) : '-'}</span>
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5">{selectedIncident.waktu_respon_teknisi ? new Date(selectedIncident.waktu_respon_teknisi).toLocaleDateString('id-ID') : '-'}</p>
-                    {selectedIncident.respon_time && selectedIncident.respon_time !== '0' && (
-                      <p className="text-[11px] text-gray-500 mt-0.5">Respon Time: <span className="text-[#C8102E] font-bold font-mono text-[10px]">{selectedIncident.respon_time}</span></p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{selectedIncident.waktu_respon ? new Date(selectedIncident.waktu_respon).toLocaleDateString('id-ID') : '-'}</p>
+                    {selectedIncident.response_time && selectedIncident.response_time !== '0' && (
+                      <p className="text-[11px] text-gray-500 mt-0.5">Respon Time: <span className="text-[#C8102E] font-bold font-mono text-[10px]">{selectedIncident.response_time}</span></p>
                     )}
                   </div>
 
@@ -1060,7 +1076,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                       <span className="text-gray-400 font-bold">
 
                         {selectedIncident.waktu_selesai
-                          ? new Date(selectedIncident.waktu_selesai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                          ? selectedIncident.waktu_selesai.substring(11, 16)
                           : 'ONGOING'}
                       </span>
                     </div>

@@ -224,7 +224,6 @@ export default function DashboardView({
     if (firstIncident.bulan) {
       const parts = firstIncident.bulan.split(' ');
       const monthName = parts[0];
-      console.log(monthName)
       const year = parts[1] || '2026';
 
       const monthNamesIndonesian: Record<string, { days: number; name: string }> = {

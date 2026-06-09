@@ -36,7 +36,7 @@ class WhatsAppController extends Controller
         
 
         if ($response->successful()) {
-            return redirect->back();
+            return redirect()->back();
         }
 
         return response()->json([

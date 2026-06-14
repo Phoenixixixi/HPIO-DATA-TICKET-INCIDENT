@@ -34,6 +34,7 @@ interface DashboardData {
   incidents: Incident[];
   month_data: string;
   data_station_count: StationCount[];
+  today_day?: number;
 }
 
 interface DashboardViewProps {
@@ -118,7 +119,7 @@ export default function DashboardView({
   onSimulateFault,
   data_dashboard
 }: DashboardViewProps) {
-  const { data_perangkat = [], data_open = 0, incidents = [] } = data_dashboard || {};
+  const { data_perangkat = [], data_open = 0, incidents = [], today_day } = data_dashboard || {};
   const [activeFeedTab, setActiveFeedTab] = useState<'telemetry' | 'incidents'>('incidents');
   const [selectedStation, setSelectedStation] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
@@ -126,17 +127,43 @@ export default function DashboardView({
   const [testFaultStation, setTestFaultStation] = useState('HLM');
   const [testSeverity, setTestSeverity] = useState<'critical' | 'high' | 'warning'>('high');
 
+  const [periodFilter, setPeriodFilter] = useState<'monthly' | 'weekly' | 'daily'>('monthly');
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+
   const unresolvedAlerts = alerts.filter(a => !a.resolved_at);
 
-  console.log(data_dashboard)
+  const getDayFromDate = (dateStr: string) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split(' ');
+    const datePart = parts[0];
+    const subParts = datePart.split('-');
+    if (subParts.length === 3) {
+      return parseInt(subParts[2], 10);
+    }
+    return null;
+  };
 
+  const todayDay = today_day ?? new Date().getDate();
 
+  const filteredByPeriodIncidents = incidents.filter(inc => {
+    const day = getDayFromDate(inc.tanggal_lapor);
+    if (day === null) return true;
 
-
-
+    if (periodFilter === 'daily') {
+      return day === todayDay;
+    }
+    if (periodFilter === 'weekly') {
+      if (selectedWeek === 1) return day >= 1 && day <= 7;
+      if (selectedWeek === 2) return day >= 8 && day <= 14;
+      if (selectedWeek === 3) return day >= 15 && day <= 21;
+      if (selectedWeek === 4) return day >= 22 && day <= 28;
+      if (selectedWeek === 5) return day >= 29;
+    }
+    return true; // monthly
+  });
 
   // Incident calculations
-  const activeIncidents = incidents.filter(i =>
+  const activeIncidents = filteredByPeriodIncidents.filter(i =>
     i.status !== 'Closed' &&
     (i.prioritas === 'P1 (URGENT)' || i.prioritas === 'P2 (CRITICAL)' || i.prioritas === 'P3 (SERIOUS)')
   );
@@ -154,7 +181,7 @@ export default function DashboardView({
     : alerts.filter(a => a.station_id === selectedStation);
 
   // Filter incidents matching selected station and priority
-  const filteredIncidents = incidents.filter(inc => {
+  const filteredIncidents = filteredByPeriodIncidents.filter(inc => {
     // Only show urgent, critical, and serious
     const isPriorityAllowed =
       inc.prioritas === 'P1 (URGENT)' ||
@@ -189,21 +216,21 @@ export default function DashboardView({
   // ── chart data derivation ───────────────────────────────────────────────
   // 1. Pie chart – status distribution
   const statusMap: Record<string, number> = {};
-  incidents.forEach(inc => {
+  filteredByPeriodIncidents.forEach(inc => {
     statusMap[inc.status] = (statusMap[inc.status] ?? 0) + 1;
   });
   const statusPieData = Object.entries(statusMap).map(([name, value]) => ({ name, value }));
 
   // 2. Bar chart – incidents per category
   const categoryMap: Record<string, number> = {};
-  incidents.forEach(inc => {
+  filteredByPeriodIncidents.forEach(inc => {
     categoryMap[inc.kategori_aset] = (categoryMap[inc.kategori_aset] ?? 0) + 1;
   });
   const categoryBarData = Object.entries(categoryMap).map(([name, total]) => ({ name, total }));
 
   // 3. Bar chart – incidents by priority
   const priorityMap: Record<string, number> = {};
-  incidents.forEach(inc => {
+  filteredByPeriodIncidents.forEach(inc => {
     priorityMap[inc.prioritas] = (priorityMap[inc.prioritas] ?? 0) + 1;
   });
   const priorityBarData = Object.entries(priorityMap)
@@ -256,20 +283,71 @@ export default function DashboardView({
     <div className="p-8 space-y-8 bg-[#F4F5F7] text-[#1A1C1E] font-sans h-full overflow-y-auto flex-1">
 
       {/* TOP HEADER */}
-      <div className="flex items-center justify-between pb-2 border-b border-gray-250">
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950 m-0 leading-none">
-            Monthly Dashboard Report
-          </h2>
-          <p className="text-[10px] text-gray-400 font-mono mt-1.5 uppercase tracking-wider">
-            PERIODE LAPORAN: {dateRangeText}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-650">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-[10px] font-mono uppercase tracking-wider text-gray-500">LIVE DATABASE</span>
-        </div>
-      </div>
+      {(() => {
+        let activePeriodText = dateRangeText;
+        if (periodFilter === 'daily') {
+          activePeriodText = `Hari Ini (Tanggal ${todayDay})`;
+        } else if (periodFilter === 'weekly') {
+          const weekRanges = [
+            'Tanggal 1 - 7',
+            'Tanggal 8 - 14',
+            'Tanggal 15 - 21',
+            'Tanggal 22 - 28',
+            'Tanggal 29 s/d Akhir Bulan'
+          ];
+          activePeriodText = `Minggu ${selectedWeek} (${weekRanges[selectedWeek - 1]})`;
+        }
+        return (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-gray-250 gap-4">
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-950 m-0 leading-none">
+                Dashboard Report
+              </h2>
+              <p className="text-[10px] text-gray-400 font-mono mt-1.5 uppercase tracking-wider">
+                PERIODE LAPORAN: {activePeriodText}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Period Filter Dropdown */}
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-[4px] px-2 py-1 shadow-sm">
+                <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Periode:</span>
+                <select
+                  value={periodFilter}
+                  onChange={(e) => setPeriodFilter(e.target.value as any)}
+                  className="text-[11px] font-semibold bg-transparent border-none outline-none text-gray-700 cursor-pointer"
+                >
+                  <option value="monthly">Bulanan</option>
+                  <option value="weekly">Mingguan</option>
+                  <option value="daily">Harian</option>
+                </select>
+              </div>
+
+              {/* Week Selector Dropdown (visible only when Weekly is selected) */}
+              {periodFilter === 'weekly' && (
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-[4px] px-2 py-1 shadow-sm">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Minggu Ke:</span>
+                  <select
+                    value={selectedWeek}
+                    onChange={(e) => setSelectedWeek(parseInt(e.target.value, 10))}
+                    className="text-[11px] font-semibold bg-transparent border-none outline-none text-gray-700 cursor-pointer"
+                  >
+                    <option value={1}>Minggu 1 (Tgl 1-7)</option>
+                    <option value={2}>Minggu 2 (Tgl 8-14)</option>
+                    <option value={3}>Minggu 3 (Tgl 15-21)</option>
+                    <option value={4}>Minggu 4 (Tgl 22-28)</option>
+                    <option value={5}>Minggu 5 (Tgl 29+)</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 text-xs font-semibold text-gray-650">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-gray-500">LIVE DATABASE</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 4 KPI Grid Cards on Header row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -380,10 +458,10 @@ export default function DashboardView({
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900">Incidents by Category</h3>
           </div>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={data_perangkat} barSize={32} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+            <BarChart data={categoryBarData} barSize={32} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
               <XAxis
-                dataKey="kategori_aset"
+                dataKey="name"
                 tick={{ fontSize: 10, fontFamily: 'monospace', fill: '#6B7280' }}
                 axisLine={false}
                 tickLine={false}
@@ -396,11 +474,11 @@ export default function DashboardView({
               />
               <ReTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
               <Bar dataKey="total" name="Incidents" radius={[4, 4, 0, 0]}>
-                {data_perangkat.map((entry, index) => (
+                {categoryBarData.map((entry, index) => (
 
                   <Cell
                     key={`cat-${index}`}
-                    fill={CATEGORY_COLORS[entry.kategori_aset.toUpperCase()] ?? DEFAULT_FALLBACK}
+                    fill={CATEGORY_COLORS[entry.name.toUpperCase()] ?? DEFAULT_FALLBACK}
                   />
                 ))}
               </Bar>
@@ -408,10 +486,10 @@ export default function DashboardView({
           </ResponsiveContainer>
           {/* legend chips */}
           <div className="flex flex-wrap gap-2 mt-3">
-            {data_perangkat.map(d => (
-              <div key={d.kategori_aset} className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-[4px] px-2 py-1">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: CATEGORY_COLORS[d.kategori_aset?.toUpperCase()] ?? DEFAULT_FALLBACK }}></span>
-                <span className="text-[10px] font-mono text-gray-600">{d.kategori_aset}: <b>{d.total}</b></span>
+            {categoryBarData.map(d => (
+              <div key={d.name} className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-[4px] px-2 py-1">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: CATEGORY_COLORS[d.name?.toUpperCase()] ?? DEFAULT_FALLBACK }}></span>
+                <span className="text-[10px] font-mono text-gray-600">{d.name}: <b>{d.total}</b></span>
               </div>
             ))}
           </div>

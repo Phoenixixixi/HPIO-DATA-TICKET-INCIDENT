@@ -16,14 +16,32 @@ import {
 } from 'lucide-react';
 import { Station, Alert, MaintenanceOrder, Technician } from '../types';
 
+interface ShiftScheduleRow {
+  id: number;
+  employee_name: string;
+  nip: string | null;
+  no_hp: string | null;
+  month: string;
+  shifts: Record<number, string>;
+}
+
 interface StationsViewProps {
   stations: Station[];
   alerts: Alert[];
   orders: MaintenanceOrder[];
   technicians: Technician[];
+  shift_schedules?: ShiftScheduleRow[];
+  today_day?: number;
 }
 
-export default function StationsView({ stations, alerts, orders, technicians }: StationsViewProps) {
+export default function StationsView({ 
+  stations, 
+  alerts, 
+  orders, 
+  technicians,
+  shift_schedules = [],
+  today_day
+}: StationsViewProps) {
   const unresolvedAlerts = alerts.filter(a => !a.resolved_at);
 
   return (
@@ -38,7 +56,35 @@ export default function StationsView({ stations, alerts, orders, technicians }: 
         {stations.map(station => {
           const stationAlerts = unresolvedAlerts.filter(a => a.station_id === station.id);
           const stationCriticalAlerts = stationAlerts.filter(a => a.severity === 'critical');
-          const stationTechs = technicians.filter(t => t.station_id === station.id);
+          
+          const dayKey = today_day ?? new Date().getDate();
+          
+          const dynamicTechs = shift_schedules.filter(row => {
+            const shiftCodeForToday = row.shifts?.[dayKey];
+            if (!shiftCodeForToday) return false;
+            
+            const shiftCodeUpper = shiftCodeForToday.toUpperCase();
+            const stationCodeUpper = station.code.toUpperCase();
+            
+            if (stationCodeUpper === 'HLM') {
+              return shiftCodeUpper.includes('HLM');
+            }
+            if (stationCodeUpper === 'KWG') {
+              return shiftCodeUpper.includes('KWG') || shiftCodeUpper.includes('KRW');
+            }
+            if (stationCodeUpper === 'PDL') {
+              return shiftCodeUpper.includes('PDL') || shiftCodeUpper.includes('PDG');
+            }
+            if (stationCodeUpper === 'TGL') {
+              return shiftCodeUpper.includes('TGL') || shiftCodeUpper.includes('TGR');
+            }
+            return false;
+          }).map(row => ({
+            id: `dynamic-${row.id}`,
+            name: row.employee_name,
+            specialization: row.shifts?.[dayKey]
+          }));
+
           const stationOrders = orders.filter(o => o.station_id === station.id);
           const completedOrders = stationOrders.filter(o => o.status === 'completed');
           const activeOrders = stationOrders.filter(o => o.status === 'in_progress');
@@ -119,7 +165,7 @@ export default function StationsView({ stations, alerts, orders, technicians }: 
                     <Users className="w-4 h-4 text-gray-400" />
                     <span>Assigned Depot Engineers:</span>
                   </div>
-                  <span className="font-mono text-gray-900 font-bold">{stationTechs.length} technicians</span>
+                  <span className="font-mono text-gray-900 font-bold">{dynamicTechs.length} technicians</span>
                 </div>
 
                 <div className="flex justify-between items-center py-1 border-b border-gray-50 font-sans">
@@ -133,12 +179,15 @@ export default function StationsView({ stations, alerts, orders, technicians }: 
 
               {/* Assigned Staff Rosters list overlay */}
               <div className="space-y-2.5 bg-[#F4F5F7] p-3.5 rounded-[4px] border border-gray-150 font-sans">
-                <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest block leading-none">LOCAL STATION TECHS SPECIALTIES</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest block leading-none">ON-DUTY TECHNICIANS (TODAY)</span>
+                  <span className="text-[9px] bg-emerald-50 text-emerald-700 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-250 select-none uppercase tracking-wider scale-90 origin-right">Dynamic Schedule</span>
+                </div>
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {stationTechs.length === 0 ? (
-                    <span className="text-[10px] text-gray-400 font-medium italic">No technicians staffed directly (HQ dispatch support active)</span>
+                  {dynamicTechs.length === 0 ? (
+                    <span className="text-[10px] text-gray-400 font-medium italic">No technicians scheduled on duty today (HQ dispatch support active)</span>
                   ) : (
-                    stationTechs.map(tech => (
+                    dynamicTechs.map(tech => (
                       <span key={tech.id} className="text-[10px] bg-white border border-gray-200 px-2 py-1 rounded-[3px] text-gray-700 font-semibold shadow-sm">
                         {tech.name} • <span className="text-[#C8102E] font-mono text-[9px] font-bold">{tech.specialization}</span>
                       </span>

@@ -12,7 +12,21 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Stations() {
+interface ShiftScheduleRow {
+    id: number;
+    employee_name: string;
+    nip: string | null;
+    no_hp: string | null;
+    month: string;
+    shifts: Record<number, string>;
+}
+
+interface StationsProps {
+    shift_schedules?: ShiftScheduleRow[];
+    today_day?: number;
+}
+
+export default function Stations({ shift_schedules = [], today_day }: StationsProps) {
     const { alerts } = useSystemStore();
 
     return (
@@ -23,6 +37,8 @@ export default function Stations() {
                 alerts={alerts}
                 orders={INITIAL_MAINTENANCE_ORDERS}
                 technicians={INITIAL_TECHNICIANS}
+                shift_schedules={shift_schedules}
+                today_day={today_day}
             />
         </AppLayout>
     );

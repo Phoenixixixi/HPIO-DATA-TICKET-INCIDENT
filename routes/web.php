@@ -23,7 +23,15 @@ Route::middleware(['auth'])->group(function () {
     
 
     Route::get('stations', function () {
-        return Inertia::render('stations');
+        $today = \Carbon\Carbon::now();
+        $currentMonthStr = $today->format('Y-m');
+        $todayDay = $today->day;
+        $shift_schedules = \App\Models\ShiftSchedule::where('month', $currentMonthStr)->get();
+
+        return Inertia::render('stations', [
+            'shift_schedules' => $shift_schedules,
+            'today_day' => $todayDay,
+        ]);
     })->name('stations');
 
     Route::get('blueprints', function () {

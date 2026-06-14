@@ -11,8 +11,19 @@ class Dashboard extends Controller
 {
     public function Index(Request $request, LaporanHpio $laporan_hpio)
     {
-        $currentMonthStart = Carbon::now()->startOfMonth();
-        $currentMonthEnd = Carbon::now()->endOfMonth();
+        $monthParam = $request->query('month');
+        if ($monthParam) {
+            try {
+                $currentMonthStart = Carbon::parse($monthParam)->startOfMonth();
+                $currentMonthEnd = Carbon::parse($monthParam)->endOfMonth();
+            } catch (\Exception $e) {
+                $currentMonthStart = Carbon::now()->startOfMonth();
+                $currentMonthEnd = Carbon::now()->endOfMonth();
+            }
+        } else {
+            $currentMonthStart = Carbon::now()->startOfMonth();
+            $currentMonthEnd = Carbon::now()->endOfMonth();
+        }
 
         $baseQuery = $laporan_hpio::whereBetween('tanggal_lapor', [
             $currentMonthStart,
@@ -28,11 +39,15 @@ class Dashboard extends Controller
         $mapped_incidents = $db_incidents->map(function ($item) {
             // Map DB status to UI status
             $status = 'Open';
-            $status_upper = strtoupper($item->status);
-            if ($status_upper === 'CLOSE' || $status_upper === 'SELESAI' || $status_upper === 'DONE') {
+            $status_upper = strtoupper(trim($item->status));
+            if ($status_upper === 'CLOSE' || $status_upper === 'SELESAI' || $status_upper === 'DONE' || $status_upper === 'CLOSED') {
                 $status = 'Closed';
-            } elseif ($status_upper === 'ON PROGRESS' || $status_upper === 'PROSES' || $status_upper === 'ESCALATION') {
+            } elseif ($status_upper === 'ON PROGRESS' || $status_upper === 'PROSES' || $status_upper === 'PROGRESS') {
+                $status = 'On Progress'; 
+            } elseif ($status_upper === 'ON ESCALATION' || $status_upper === 'ESCALATION') {
                 $status = 'On Escalation';
+            } elseif ($status_upper === 'OPEN') {
+                $status = 'Open';
             }
 
             // Map DB priority to UI priority
@@ -70,7 +85,9 @@ class Dashboard extends Controller
         });
 
         // 3. Count only active or open incidents from database (for Open Orders KPI)
-        $data_open = (clone $baseQuery)->whereIn('status', ['OPEN', 'BARU'])->count();
+       $data_close = (clone $baseQuery)
+         ->where('status', 'Open')
+         ->count();
 
         // 4. Group by category for category chart
         $data_perangkat = (clone $baseQuery)->selectRaw('kategori_aset, COUNT(*) as total')
@@ -83,12 +100,12 @@ class Dashboard extends Controller
             ->get();
 
 
-        $currentMonthStr = Carbon::now()->format('Y-m');
+        $currentMonthStr = $currentMonthStart->format('Y-m');
         $shift_schedules = ShiftSchedule::where('month', $currentMonthStr)->get();
 
         $data_dashboard = [
             'data_perangkat' => $data_perangkat,
-            'data_open' => $data_open,
+            'data_close' => $data_close,
             'incidents' => $mapped_incidents,
             'month_start' => $currentMonthStart,
             'month_end' => $currentMonthEnd,

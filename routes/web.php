@@ -10,7 +10,7 @@ use App\Http\Controllers\WhatsAppController;
 
 
 Route::get('/', function () {
-    return Inertia::render('welcome');
+   return redirect()->route('dashboard');
 })->name('home');
 
 Route::middleware(['auth'])->group(function () {
@@ -26,11 +26,29 @@ Route::middleware(['auth'])->group(function () {
         $today = \Carbon\Carbon::now();
         $currentMonthStr = $today->format('Y-m');
         $todayDay = $today->day;
+        $todayDate = $today->toDateString();
         $shift_schedules = \App\Models\ShiftSchedule::where('month', $currentMonthStr)->get();
+
+        // Query today's incidents grouped by station
+        $todayIncidents = \App\Models\LaporanHpio::whereDate('tanggal_lapor', $todayDate)->get();
+
+        $stationIncidentMap = [];
+        foreach ($todayIncidents as $inc) {
+            $stasiun = $inc->stasiun;
+            if (!isset($stationIncidentMap[$stasiun])) {
+                $stationIncidentMap[$stasiun] = ['total' => 0, 'closed' => 0];
+            }
+            $stationIncidentMap[$stasiun]['total']++;
+            $statusUpper = strtoupper(trim($inc->status));
+            if ($statusUpper === 'CLOSE' || $statusUpper === 'CLOSED' || $statusUpper === 'SELESAI' || $statusUpper === 'DONE') {
+                $stationIncidentMap[$stasiun]['closed']++;
+            }
+        }
 
         return Inertia::render('stations', [
             'shift_schedules' => $shift_schedules,
             'today_day' => $todayDay,
+            'station_incidents' => $stationIncidentMap,
         ]);
     })->name('stations');
 

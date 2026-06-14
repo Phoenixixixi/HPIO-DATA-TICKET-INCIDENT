@@ -84,7 +84,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
     end_date: '',
   });
 
-  console.log(incident_log)
+
 
   const [filterData] = useDebounce(searchData, 500);
 
@@ -106,7 +106,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
       end_date: '',
     })
   }
-
+  console.log(incident_log);
   const params = new URLSearchParams(window.location.search)
   const activePage = params.get('page') || 1
 
@@ -221,6 +221,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
       page = 0
     }
     router.get('/incident', {
+      ...filterData,
       page
     }, {
       preserveState: true,
@@ -426,7 +427,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
               <span>Export Excel</span>
             </button>
 
-            <button
+            {/* <button
               type="button"
               onClick={() => setIsCategoryModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-250 hover:bg-gray-50 text-gray-705 text-xs font-semibold rounded-[4px] cursor-pointer transition-colors shadow-sm"
@@ -441,7 +442,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
             >
               <Plus className="w-4 h-4" />
               <span>Buat Tiket</span>
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -607,7 +608,8 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                 <option value="">Semua</option>
                 <option value="Open">Open</option>
                 <option value="Closed">Closed</option>
-                <option value="On Escalation">On Progress</option>
+                <option value="On Progress">On Progress</option>
+                <option value="On Escalation">On Escalation</option>
               </select>
             </div>
 
@@ -761,6 +763,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                     const statusUpper = (inc.status || '').toUpperCase();
                     const isClosed = statusUpper === 'CLOSED' || statusUpper === 'SELESAI' || statusUpper === 'DONE';
                     const isEscalated = statusUpper === 'ON ESCALATION' || statusUpper === 'ESCALATION';
+                    const isProgress = statusUpper === 'ON PROGRESS' || statusUpper === 'OnProgress';
 
                     return (
                       <tr
@@ -829,17 +832,25 @@ export default function IncidentView({ incident_log, data_count }: Props) {
                               <CheckCircle className="w-2.5 h-2.5" />
                               CLOSED
                             </span>
-                          ) : isEscalated ? (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-yellow-800 bg-yellow-50 border border-yellow-200 px-2 py-0.5 rounded-[3px]">
-                              <ArrowUpRight className="w-2.5 h-2.5" />
-                              ESCALATED
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-[3px]">
-                              <AlertCircle className="w-2.5 h-2.5" />
-                              OPEN
-                            </span>
-                          )}
+                          ) :
+                            isProgress ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-emerald-800 bg-bl border border-emerald-200 px-2 py-0.5 rounded-[3px]">
+                                <CheckCircle className="w-2.5 h-2.5" />
+                                On Progress
+                              </span>
+                            )
+
+                              : isEscalated ? (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-yellow-800 bg-yellow-50 border border-yellow-200 px-2 py-0.5 rounded-[3px]">
+                                  <ArrowUpRight className="w-2.5 h-2.5" />
+                                  ESCALATED
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-[3px]">
+                                  <AlertCircle className="w-2.5 h-2.5" />
+                                  OPEN
+                                </span>
+                              )}
                         </td>
 
                         {/* 7. Detail Button */}

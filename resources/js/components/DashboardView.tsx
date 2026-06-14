@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { router } from '@inertiajs/react';
 import {
   CheckCircle2,
   Clock,
@@ -32,7 +33,7 @@ interface DashboardData {
   data_perangkat: CategoryData[];
   data_open: number;
   incidents: Incident[];
-  month_data: string;
+  month_start: string;
   data_station_count: StationCount[];
   today_day?: number;
 }
@@ -50,6 +51,7 @@ interface DashboardViewProps {
 // ── colour palette ──────────────────────────────────────────────────────────
 const PIE_COLORS: Record<string, string> = {
   'Open': '#C8102E',
+  'On Progress': '#3B82F6',
   'On Escalation': '#F59E0B',
   'Closed': '#10B981',
 };
@@ -130,7 +132,51 @@ export default function DashboardView({
   const [periodFilter, setPeriodFilter] = useState<'monthly' | 'weekly' | 'daily'>('monthly');
   const [selectedWeek, setSelectedWeek] = useState<number>(1);
 
+  const getInitialMonth = () => {
+    if (data_dashboard && data_dashboard.month_start) {
+      const date = new Date(data_dashboard.month_start);
+      if (!isNaN(date.getTime())) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        return `${yyyy}-${mm}`;
+      }
+    }
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `${yyyy}-${mm}`;
+  };
+
+  const [selectedMonth, setSelectedMonth] = useState<string>(getInitialMonth());
+
+  const handleMonthChange = (monthVal: string) => {
+    setSelectedMonth(monthVal);
+    router.get(window.location.pathname, { month: monthVal }, { preserveState: true });
+  };
+
+  const generateMonthOptions = () => {
+    const options = [];
+    const startYear = 2025;
+    const endYear = 2027;
+    const monthNames = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    for (let y = startYear; y <= endYear; y++) {
+      for (let m = 0; m < 12; m++) {
+        const monthVal = `${y}-${String(m + 1).padStart(2, '0')}`;
+        options.push({
+          value: monthVal,
+          label: `${monthNames[m]} ${y}`
+        });
+      }
+    }
+    return options;
+  };
+
   const unresolvedAlerts = alerts.filter(a => !a.resolved_at);
+
+  console.log(data_dashboard)
 
   const getDayFromDate = (dateStr: string) => {
     if (!dateStr) return null;
@@ -163,11 +209,20 @@ export default function DashboardView({
   });
 
   // Incident calculations
-  const activeIncidents = filteredByPeriodIncidents.filter(i =>
-    i.status !== 'Closed' &&
-    (i.prioritas === 'P1 (URGENT)' || i.prioritas === 'P2 (CRITICAL)' || i.prioritas === 'P3 (SERIOUS)')
+  const openIncidents = filteredByPeriodIncidents.filter(i =>
+    i.status === 'Open'
   );
-  const urgentIncidentsCount = activeIncidents.filter(i => i.prioritas === 'P1 (URGENT)').length;
+  const progressIncidents = filteredByPeriodIncidents.filter(i =>
+    i.status === 'On Progress'
+  );
+  const escalationIncidents = filteredByPeriodIncidents.filter(i =>
+    i.status === 'On Escalation'
+  );
+  const closedIncidents = filteredByPeriodIncidents.filter(i =>
+    i.status === 'Closed'
+  );
+  const urgentIncidentsCount = openIncidents.filter(i => i.prioritas === 'P1 (URGENT)').length;
+  const activeIncidentsCount = openIncidents.length + escalationIncidents.length;
 
   // States counts matching the KPI blueprints
   const openOrdersCount = orders.filter(o => o.status === 'pending' || o.status === 'in_progress').length;
@@ -245,7 +300,35 @@ export default function DashboardView({
   ];
 
   // Extract month and date range dynamically from database incidents
-  let dateRangeText = data_dashboard.month_data; // fallback
+  let dateRangeText = '';
+  if (data_dashboard.month_start) {
+    const dt = new Date(data_dashboard.month_start);
+    if (!isNaN(dt.getTime())) {
+      const monthNames = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      ];
+      const monthNamesIndonesian: Record<string, { days: number; name: string }> = {
+        "januari": { days: 31, name: "Januari" },
+        "februari": { days: 28, name: "Februari" },
+        "maret": { days: 31, name: "Maret" },
+        "april": { days: 30, name: "April" },
+        "mei": { days: 31, name: "Mei" },
+        "juni": { days: 30, name: "Juni" },
+        "juli": { days: 31, name: "Juli" },
+        "agustus": { days: 31, name: "Agustus" },
+        "september": { days: 30, name: "September" },
+        "oktober": { days: 31, name: "Oktober" },
+        "november": { days: 30, name: "November" },
+        "desember": { days: 31, name: "Desember" }
+      };
+      const key = monthNames[dt.getMonth()].toLowerCase();
+      const days = monthNamesIndonesian[key]?.days ?? 30;
+      const normalizedMonthName = monthNamesIndonesian[key]?.name ?? monthNames[dt.getMonth()];
+      dateRangeText = `1 - ${days} ${normalizedMonthName} ${dt.getFullYear()}`;
+    }
+  }
+
   if (incidents.length > 0) {
     const firstIncident = incidents[0];
     if (firstIncident.bulan) {
@@ -322,6 +405,24 @@ export default function DashboardView({
                 </select>
               </div>
 
+              {/* Month Selector Dropdown (visible only when Monthly is selected) */}
+              {periodFilter === 'monthly' && (
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-[4px] px-2 py-1 shadow-sm">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Bulan:</span>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => handleMonthChange(e.target.value)}
+                    className="text-[11px] font-semibold bg-transparent border-none outline-none text-gray-700 cursor-pointer"
+                  >
+                    {generateMonthOptions().map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Week Selector Dropdown (visible only when Weekly is selected) */}
               {periodFilter === 'weekly' && (
                 <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-[4px] px-2 py-1 shadow-sm">
@@ -350,52 +451,54 @@ export default function DashboardView({
       })()}
 
       {/* 4 KPI Grid Cards on Header row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
 
-        {/* KPI 1: Open Orders */}
-        <div className="bg-white p-5 rounded-[4px] border border-gray-200/80 shadow-sm flex flex-col justify-between">
-          <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Open Orders</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold font-mono text-gray-900 tracking-tight">{data_dashboard.data_open}</span>
-            <span className="text-xs text-green-600 font-medium font-sans">Active</span>
-          </div>
-        </div>
-
-        {/* KPI 2: Active Incidents */}
-        <div className="bg-white p-5 rounded-[4px] border border-gray-200/80 shadow-sm border-l-4 border-l-[#C8102E] flex flex-col justify-between">
-          <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Active Incidents</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold font-mono text-gray-950 tracking-tight">
-              {String(activeIncidents.length).padStart(2, '0')}
-            </span>
-            <span className="text-xs text-red-650 font-semibold font-sans">
-              {urgentIncidentsCount} Urgent P1
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 3: Operational Trains */}
-        <div className="bg-white p-5 rounded-[4px] border border-gray-200/80 shadow-sm flex flex-col justify-between">
-          <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Operational Trains</p>
+        {/* KPI 1: Closed Incidents */}
+        <div className="bg-white p-5 rounded-[4px] border border-gray-200/80 shadow-sm border-l-4 border-l-[#10B981] flex flex-col justify-between">
+          <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Closed Incidents</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold font-mono text-gray-900 tracking-tight">
-              {operationalTrainsCount}/{trains.length}
-            </span>
-            <span className="text-xs text-gray-500 font-sans">
-              {Math.round((operationalTrainsCount / trains.length) * 100)}% Fleet
+              {String(closedIncidents.length).padStart(2, '0')}
             </span>
           </div>
         </div>
 
-        {/* KPI 4: Total Incidents */}
+        {/* KPI 2: Open Incidents */}
+        <div className="bg-white p-5 rounded-[4px] border border-gray-200/80 shadow-sm border-l-4 border-l-[#C8102E] flex flex-col justify-between">
+          <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Open Incidents</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold font-mono text-gray-950 tracking-tight">
+              {String(openIncidents.length).padStart(2, '0')}
+            </span>
+          </div>
+        </div>
+
+        {/* KPI 3: Progress Incidents */}
+        <div className="bg-white p-5 rounded-[4px] border border-gray-200/80 shadow-sm border-l-4 border-l-[#3B82F6] flex flex-col justify-between">
+          <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Progress Incidents</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold font-mono text-gray-950 tracking-tight">
+              {String(progressIncidents.length).padStart(2, '0')}
+            </span>
+          </div>
+        </div>
+
+        {/* KPI 4: Escalation Incidents */}
+        <div className="bg-white p-5 rounded-[4px] border border-gray-200/80 shadow-sm border-l-4 border-l-[#F59E0B] flex flex-col justify-between">
+          <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Escalation Incidents</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold font-mono text-gray-950 tracking-tight">
+              {String(escalationIncidents.length).padStart(2, '0')}
+            </span>
+          </div>
+        </div>
+
+        {/* KPI 5: Total Incidents */}
         <div className="bg-white p-5 rounded-[4px] border border-gray-200/80 shadow-sm flex flex-col justify-between">
           <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Total Incidents</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold font-mono text-gray-900 tracking-tight">
-              {incidents.length}
-            </span>
-            <span className="text-xs text-blue-600 font-medium font-sans">
-              {incidents.filter(i => i.status === 'Closed').length} Closed
+              {String(filteredByPeriodIncidents.length).padStart(2, '0')}
             </span>
           </div>
         </div>
@@ -545,7 +648,7 @@ export default function DashboardView({
       </div>
 
       {/* Main Double Columns Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
 
         {/* LEFT COLUMN (col-span-8): Alerts feed and Fault Simulator */}
         <div className="lg:col-span-8 space-y-6">
@@ -553,7 +656,7 @@ export default function DashboardView({
           <div className="bg-white rounded-[4px] border border-gray-250 shadow-sm">
             <div className="p-4 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
               <div className="flex gap-5 border-b border-gray-100 sm:border-none pb-2 sm:pb-0">
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setActiveFeedTab('telemetry')}
                   className={`text-xs font-bold uppercase tracking-wider pb-1.5 cursor-pointer transition-all border-b-2 ${activeFeedTab === 'telemetry'
@@ -562,7 +665,7 @@ export default function DashboardView({
                     }`}
                 >
                   Live Telemetry Alerts ({unresolvedAlerts.length})
-                </button>
+                </button> */}
                 <button
                   type="button"
                   onClick={() => setActiveFeedTab('incidents')}
@@ -571,7 +674,7 @@ export default function DashboardView({
                     : 'text-gray-400 border-b-transparent hover:text-gray-650'
                     }`}
                 >
-                  Active Incident Tickets ({activeIncidents.length})
+                  Active Incident Tickets ({activeIncidentsCount})
                 </button>
               </div>
 
@@ -780,39 +883,7 @@ export default function DashboardView({
         </div>
 
         {/* RIGHT COLUMN (col-span-4): Station Summary list and Dark Fleet Card */}
-        <div className="lg:col-span-4 space-y-6">
 
-          {/* Station Health Panel */}
-          <div className="bg-white rounded-[4px] border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-4 border-b border-gray-100 pb-2">Station Health</h3>
-            <div className="space-y-4">
-              {data_dashboard.data_station_count
-                .filter(station => station.stasiun.toLowerCase() !== "belum teridentifikasi")
-                .map(station => (
-                  <div
-                    key={station.stasiun_lokasi}
-                    className="flex items-center justify-between py-1"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full"></div>
-
-                      <span className="text-xs font-medium text-gray-900">
-                        {station.stasiun_lokasi}
-                      </span>
-                    </div>
-
-                    <span className="text-xs font-sans">
-                      {station.total}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-
-          {/* Epic Dark Fleet Status Graphic block */}
-
-
-        </div>
 
       </div>
 

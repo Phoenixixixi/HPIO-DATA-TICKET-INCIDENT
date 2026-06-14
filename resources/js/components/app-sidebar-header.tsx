@@ -17,7 +17,7 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
             <div className="flex items-center gap-5">
                 <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 select-none">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span>SUPABASE REALTIME CONNECTED</span>
+                    <span>HPIO NETWORK AND OPERATION MAINTENANCE</span>
                 </div>
             </div>
 

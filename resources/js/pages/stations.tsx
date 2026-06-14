@@ -24,9 +24,10 @@ interface ShiftScheduleRow {
 interface StationsProps {
     shift_schedules?: ShiftScheduleRow[];
     today_day?: number;
+    station_incidents?: Record<string, { total: number; closed: number }>;
 }
 
-export default function Stations({ shift_schedules = [], today_day }: StationsProps) {
+export default function Stations({ shift_schedules = [], today_day, station_incidents = {} }: StationsProps) {
     const { alerts } = useSystemStore();
 
     return (
@@ -39,6 +40,7 @@ export default function Stations({ shift_schedules = [], today_day }: StationsPr
                 technicians={INITIAL_TECHNICIANS}
                 shift_schedules={shift_schedules}
                 today_day={today_day}
+                station_incidents={station_incidents}
             />
         </AppLayout>
     );

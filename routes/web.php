@@ -26,9 +26,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('stations', function () {
         $today = \Carbon\Carbon::now();
         $currentMonthStr = $today->format('Y-m');
-        $todayDay = $today->day;
+        $todayDay = $today->dayOfWeekIso; // ISO day of week (1 = Monday, 7 = Sunday)
         $todayDate = $today->toDateString();
         $shift_schedules = \App\Models\ShiftSchedule::where('month', $currentMonthStr)->get();
+        $configs = \App\Models\ShiftConfig::orderBy('id')->get();
 
         // Query today's incidents grouped by station
         $todayIncidents = \App\Models\LaporanHpio::whereDate('tanggal_lapor', $todayDate)->get();
@@ -50,6 +51,7 @@ Route::middleware(['auth'])->group(function () {
             'shift_schedules' => $shift_schedules,
             'today_day' => $todayDay,
             'station_incidents' => $stationIncidentMap,
+            'configs' => $configs,
         ]);
     })->name('stations');
 

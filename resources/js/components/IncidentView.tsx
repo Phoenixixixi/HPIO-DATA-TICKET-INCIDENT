@@ -106,7 +106,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
       end_date: '',
     })
   }
-  console.log(incident_log);
+
   const params = new URLSearchParams(window.location.search)
   const activePage = params.get('page') || 1
 

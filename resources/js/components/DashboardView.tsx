@@ -151,7 +151,23 @@ export default function DashboardView({
 
   const handleMonthChange = (monthVal: string) => {
     setSelectedMonth(monthVal);
-    router.get(window.location.pathname, { month: monthVal }, { preserveState: true });
+    const newParams = new URLSearchParams(window.location.search);
+    newParams.set('month', monthVal);
+    router.get(window.location.pathname, Object.fromEntries(newParams.entries()), { preserveState: true });
+  };
+
+  const currentStationFilter = typeof window !== 'undefined' 
+    ? new URLSearchParams(window.location.search).get('stasiun') || 'all' 
+    : 'all';
+
+  const handleStationChange = (stationVal: string) => {
+    const newParams = new URLSearchParams(window.location.search);
+    if (stationVal === 'all') {
+      newParams.delete('stasiun');
+    } else {
+      newParams.set('stasiun', stationVal);
+    }
+    router.get(window.location.pathname, Object.fromEntries(newParams.entries()), { preserveState: true });
   };
 
   const generateMonthOptions = () => {
@@ -439,6 +455,23 @@ export default function DashboardView({
                 </div>
               )}
 
+              {/* Station Selector Dropdown */}
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-[4px] px-2 py-1 shadow-sm">
+                <span className="text-[10px] font-bold text-gray-400 uppercase font-mono">Stasiun:</span>
+                <select
+                  value={currentStationFilter}
+                  onChange={(e) => handleStationChange(e.target.value)}
+                  className="text-[11px] font-semibold bg-transparent border-none outline-none text-gray-700 cursor-pointer"
+                >
+                  <option value="all">Semua Stasiun</option>
+                  {stations.map((s) => (
+                    <option key={s.id} value={s.name.replace(' Station', '')}>
+                      {s.name.replace(' Station', '')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex items-center gap-2 text-xs font-semibold text-gray-650">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                 <span className="text-[10px] font-mono uppercase tracking-wider text-gray-500">LIVE DATABASE</span>
@@ -459,6 +492,9 @@ export default function DashboardView({
               {String(closedIncidents.length).padStart(2, '0')}
             </span>
           </div>
+          <span className="text-[9px] font-mono text-gray-400 uppercase mt-2">
+            {currentStationFilter === 'all' ? 'All Stations' : `${currentStationFilter} Station`}
+          </span>
         </div>
 
         {/* KPI 2: Open Incidents */}
@@ -469,6 +505,9 @@ export default function DashboardView({
               {String(openIncidents.length).padStart(2, '0')}
             </span>
           </div>
+          <span className="text-[9px] font-mono text-gray-400 uppercase mt-2">
+            {currentStationFilter === 'all' ? 'All Stations' : `${currentStationFilter} Station`}
+          </span>
         </div>
 
         {/* KPI 3: Progress Incidents */}
@@ -479,6 +518,9 @@ export default function DashboardView({
               {String(progressIncidents.length).padStart(2, '0')}
             </span>
           </div>
+          <span className="text-[9px] font-mono text-gray-400 uppercase mt-2">
+            {currentStationFilter === 'all' ? 'All Stations' : `${currentStationFilter} Station`}
+          </span>
         </div>
 
         {/* KPI 4: Escalation Incidents */}
@@ -489,6 +531,9 @@ export default function DashboardView({
               {String(escalationIncidents.length).padStart(2, '0')}
             </span>
           </div>
+          <span className="text-[9px] font-mono text-gray-400 uppercase mt-2">
+            {currentStationFilter === 'all' ? 'All Stations' : `${currentStationFilter} Station`}
+          </span>
         </div>
 
         {/* KPI 5: Total Incidents */}
@@ -499,6 +544,9 @@ export default function DashboardView({
               {String(filteredByPeriodIncidents.length).padStart(2, '0')}
             </span>
           </div>
+          <span className="text-[9px] font-mono text-gray-400 uppercase mt-2">
+            {currentStationFilter === 'all' ? 'All Stations' : `${currentStationFilter} Station`}
+          </span>
         </div>
 
       </div>

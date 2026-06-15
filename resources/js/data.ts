@@ -30,7 +30,7 @@ export const INITIAL_STATIONS: Station[] = [
   {
     id: "st-tgl-044e-4cb8-9999",
     name: "Tegalluar Station",
-    code: "TGL",
+    code: "TGR",
     location: "Kabupaten Bandung, Jawa Barat",
     created_at: "2023-10-01T00:00:00Z"
   }

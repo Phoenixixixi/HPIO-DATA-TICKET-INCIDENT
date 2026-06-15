@@ -176,7 +176,7 @@ function SortableRow({ row, days, onEdit, onDelete, index, sendWA, }: SortableRo
         transition,
         opacity: isDragging ? 0.4 : 1,
     };
-    console.log(row);
+
 
     return (
         <tr

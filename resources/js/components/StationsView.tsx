@@ -26,6 +26,13 @@ interface ShiftScheduleRow {
   shifts: Record<number, string>;
 }
 
+interface ShiftConfig {
+  id: number;
+  shift_name: string;
+  start_time: string;
+  end_time: string;
+}
+
 interface StationsViewProps {
   stations: Station[];
   alerts: Alert[];
@@ -34,16 +41,51 @@ interface StationsViewProps {
   shift_schedules?: ShiftScheduleRow[];
   today_day?: number;
   station_incidents?: Record<string, { total: number; closed: number }>;
+  configs?: ShiftConfig[];
 }
 
-// Determine the current shift based on time of day
-function getCurrentShift(): string {
+const DEFAULT_CONFIGS: ShiftConfig[] = [
+  { id: 1, shift_name: 'Shift 1', start_time: '07:00', end_time: '15:00' },
+  { id: 2, shift_name: 'Shift 2', start_time: '15:00', end_time: '23:00' },
+  { id: 3, shift_name: 'Shift 3', start_time: '23:00', end_time: '07:00' },
+  { id: 4, shift_name: 'Middle', start_time: '09:00', end_time: '17:00' },
+];
+
+function isTimeInShift(startTimeStr: string, endTimeStr: string): boolean {
   const now = new Date();
-  const hour = now.getHours();
-  // S1: 06:00-14:00, S2: 14:00-22:00, S3: 22:00-06:00
-  if (hour >= 6 && hour < 14) return 'S1';
-  if (hour >= 14 && hour < 22) return 'S2';
-  return 'S3';
+  const [startH, startM] = startTimeStr.split(':').map(Number);
+  const [endH, endM] = endTimeStr.split(':').map(Number);
+
+  const start = new Date(now);
+  start.setHours(startH, startM, 0, 0);
+
+  const end = new Date(now);
+  end.setHours(endH, endM, 0, 0);
+
+  if (end <= start) {
+    // Shift crosses midnight
+    return now >= start || now < end;
+  } else {
+    return now >= start && now < end;
+  }
+}
+
+function getShiftConfigName(shiftCode: string): string | null {
+  const code = shiftCode.toUpperCase().trim();
+  if (code === 'LIBUR') return null;
+  if (code === 'SM' || code.endsWith(' M')) {
+    return 'Middle';
+  }
+  if (code.endsWith('3') || code.endsWith(' 3')) {
+    return 'Shift 3';
+  }
+  if (code.endsWith('2')) {
+    return 'Shift 2';
+  }
+  if (code.endsWith('1')) {
+    return 'Shift 1';
+  }
+  return null;
 }
 
 // Map station code to incident station name patterns
@@ -82,10 +124,26 @@ export default function StationsView({
   technicians,
   shift_schedules = [],
   today_day,
-  station_incidents = {}
+  station_incidents = {},
+  configs = []
 }: StationsViewProps) {
   const unresolvedAlerts = alerts.filter(a => !a.resolved_at);
-  const currentShift = getCurrentShift();
+
+  const mergedConfigs = configs && configs.length > 0 ? configs : DEFAULT_CONFIGS;
+  const activeConfig = mergedConfigs.find(cfg => isTimeInShift(cfg.start_time, cfg.end_time));
+
+
+
+  // Determine current day of week key (1 = Monday, 7 = Sunday)
+  const baseDayKey = today_day || (() => {
+    const jsDay = new Date().getDay();
+    return jsDay === 0 ? 7 : jsDay;
+  })();
+
+  // Shift 3 ends at 07:00. If current hour is < 7, the active shift (Shift 3) started yesterday.
+  // We check the schedule for yesterday to fetch the correct active night shift team.
+  const currentHour = new Date().getHours();
+  const dayKey = currentHour < 7 ? (baseDayKey - 1 === 0 ? 7 : baseDayKey - 1) : baseDayKey;
 
   return (
     <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-[#F4F5F7] text-[#1A1C1E] font-sans">
@@ -98,7 +156,9 @@ export default function StationsView({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-[4px] px-2.5 py-1 shadow-sm">
             <Clock className="w-3 h-3 text-[#C8102E]" />
-            <span className="text-[10px] font-mono font-bold text-gray-700 uppercase">Active Shift: {currentShift}</span>
+            <span className="text-[10px] font-mono font-bold text-gray-700 uppercase">
+              Active Shift: {activeConfig ? `${activeConfig.shift_name} (${activeConfig.start_time} - ${activeConfig.end_time})` : 'None'}
+            </span>
           </div>
         </div>
       </div>
@@ -108,9 +168,7 @@ export default function StationsView({
           const stationAlerts = unresolvedAlerts.filter(a => a.station_id === station.id);
           const stationCriticalAlerts = stationAlerts.filter(a => a.severity === 'critical');
 
-          const dayKey = today_day ?? new Date().getDate();
-
-          // Get engineers for this station based on today's shift schedule AND current shift
+          // Get engineers for this station based on today's/yesterday's shift schedule AND active shift config
           const dynamicTechs = shift_schedules.filter(row => {
             const shiftCodeForToday = row.shifts?.[dayKey];
             if (!shiftCodeForToday) return false;
@@ -118,8 +176,22 @@ export default function StationsView({
             const shiftCodeUpper = shiftCodeForToday.toUpperCase();
             const stationCodeUpper = station.code.toUpperCase();
 
-            // Check if the shift code matches the current shift (S1, S2, S3)
-            if (!shiftCodeUpper.includes(currentShift)) return false;
+            // Map shift code to config name
+            const configName = getShiftConfigName(shiftCodeForToday);
+            if (!configName) return false;
+
+            // Check if this config is active right now
+            const isTodayShiftActive = activeConfig?.shift_name === configName;
+            if (!isTodayShiftActive) return false;
+
+            // If the shift code is a general shift (doesn't contain a specific station code),
+            // we assume they support all stations.
+            const hasStationPrefix = ['HLM', 'KWG', 'KRW', 'PDL', 'PDG', 'TGL', 'TGR', 'OCC'].some(prefix =>
+              shiftCodeUpper.includes(prefix)
+            );
+            if (!hasStationPrefix) {
+              return true; // General shift applies to all stations
+            }
 
             // Check if the shift code matches the station
             if (stationCodeUpper === 'HLM') {
@@ -140,6 +212,10 @@ export default function StationsView({
             name: row.employee_name,
             specialization: row.shifts?.[dayKey]
           }));
+
+
+
+
 
           // Get today's incident counts for this station
           const incidentCounts = getStationIncidentCount(station.code, station_incidents);
@@ -223,7 +299,7 @@ export default function StationsView({
               {/* Assigned Staff Rosters list overlay */}
               <div className="space-y-2.5 bg-[#F4F5F7] p-3.5 rounded-[4px] border border-gray-150 font-sans">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest block leading-none">ON-DUTY TECHNICIANS ({currentShift})</span>
+                  <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest block leading-none">ON-DUTY TECHNICIANS ({activeConfig?.shift_name || 'No Shift'})</span>
                   <span className="text-[9px] bg-emerald-50 text-emerald-700 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-250 select-none uppercase tracking-wider scale-90 origin-right">Dynamic Schedule</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1">

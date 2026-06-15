@@ -25,10 +25,15 @@ class Dashboard extends Controller
             $currentMonthEnd = Carbon::now()->endOfMonth();
         }
 
+        $stasiunParam = $request->query('stasiun');
         $baseQuery = $laporan_hpio::whereBetween('tanggal_lapor', [
             $currentMonthStart,
             $currentMonthEnd
         ]);
+
+        if ($stasiunParam && $stasiunParam !== 'all') {
+            $baseQuery->where('stasiun', 'ilike', '%' . $stasiunParam . '%');
+        }
 
         // 1. Fetch all database records for incidents/laporan
         $db_incidents = (clone $baseQuery)

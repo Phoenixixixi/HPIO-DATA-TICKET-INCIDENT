@@ -176,8 +176,6 @@ export default function DashboardView({
 
   const unresolvedAlerts = alerts.filter(a => !a.resolved_at);
 
-  console.log(data_dashboard)
-
   const getDayFromDate = (dateStr: string) => {
     if (!dateStr) return null;
     const parts = dateStr.split(' ');

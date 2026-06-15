@@ -292,7 +292,39 @@ class LaporanHpioSeeder extends Seeder
         ];
 
         foreach ($data as $row) {
-            LaporanHpio::updateOrCreate(['idNumber' => $row['idNumber']], $row);
+            LaporanHpio::updateOrCreate(
+                // Gunakan nomor_tiket sebagai kunci pencarian (unik dan ada di model)
+                ['nomor_tiket' => $row['nomor_tiket']],
+                [
+                    // 'id' menggunakan nilai idNumber dari data seeder (UUID-like string)
+                    'id'                     => $row['idNumber'],
+                    'nomor_tiket'            => $row['nomor_tiket'],
+                    'tanggal_lapor'          => $row['tanggal_lapor'],
+                    'nama_pelapor'           => $row['nama_pelapor'],
+                    'nama_penerima_laporan'  => $row['nama_penerima_laporan'],
+                    // stasiun_lokasi di seeder → stasiun di model
+                    'stasiun'                => $row['stasiun_lokasi'],
+                    'kategori_aset'          => $row['kategori_aset'],
+                    'deskripsi_masalah'      => $row['deskripsi_masalah'],
+                    // skala_prioritas di seeder → prioritas di model
+                    'prioritas'              => $row['skala_prioritas'],
+                    // status_laporan di seeder → status di model
+                    'status'                 => $row['status_laporan'],
+                    'nama_teknisi'           => $row['nama_teknisi'] ?: null,
+                    // Konversi string kosong ke null untuk field datetime
+                    'waktu_melapor'          => $row['waktu_melapor'] ?: null,
+                    // waktu_respon_teknisi di seeder → waktu_respon di model
+                    'waktu_respon'           => $row['waktu_respon_teknisi'] ?: null,
+                    'waktu_selesai'          => $row['waktu_selesai'] ?: null,
+                    // respon_time di seeder → response_time di model
+                    'response_time'          => $row['respon_time'] ?: null,
+                    'solving_time'           => $row['solving_time'] ?: null,
+                    // wr_doc_nomor di seeder → wr_doc_no di model
+                    'wr_doc_no'              => $row['wr_doc_nomor'] ?: null,
+                    'status_eskalasi'        => $row['status_eskalasi'] ?: null,
+                    'bulan'                  => $row['bulan'],
+                ]
+            );
         }
     }
 }

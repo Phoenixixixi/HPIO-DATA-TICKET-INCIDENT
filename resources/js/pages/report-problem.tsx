@@ -23,27 +23,25 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-// Types matching the LaporanHpio model
+// Types matching actual LaporanHpio model columns
 interface LaporanHpio {
-  idNumber: string;
-  timestamp: string;
+  id: string;
   nomor_tiket: string;
   tanggal_lapor: string;
   nama_pelapor: string;
   nama_penerima_laporan: string;
-  stasiun_lokasi: string;
+  stasiun: string;
   kategori_aset: string;
-  equipment: string;
   deskripsi_masalah: string;
-  skala_prioritas: string;
-  status_laporan: string;
-  nama_teknisi: string;
+  prioritas: string;
+  status: string;
+  nama_teknisi: string | null;
   waktu_melapor: string;
-  waktu_respon_teknisi: string;
+  waktu_respon: string | null;
   waktu_selesai: string | null;
-  respon_time: string;
-  solving_time: string;
-  wr_doc_nomor: string | null;
+  response_time: string | null;
+  solving_time: string | null;
+  wr_doc_no: string | null;
   status_eskalasi: string | null;
   bulan: string;
 }
@@ -136,13 +134,11 @@ const PERIOD_OPTIONS = [
   { value: 'year', label: 'Tahun Ini' },
 ];
 
-export default function ReportProblem({ laporans, summary, filterOptions, filters, data_perangkat }: any) {
+export default function ReportProblem({ laporans, summary, filterOptions, filters }: Props) {
   const [localFilters, setLocalFilters] = useState<Record<string, string>>(filters || {});
   const [searchInput, setSearchInput] = useState('');
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedLaporan, setSelectedLaporan] = useState<LaporanHpio | null>(null);
-
-  console.log(data_perangkat)
 
   // Navigate with filters using Inertia router
   const applyFilters = (overrides: Record<string, string> = {}) => {
@@ -466,12 +462,12 @@ export default function ReportProblem({ laporans, summary, filterOptions, filter
                   <tbody className="divide-y divide-gray-100 select-text">
                     {laporans.data.map((item, index) => {
                       const isEven = index % 2 === 0;
-                      const priorityBadge = getPriorityBadge(item.skala_prioritas);
-                      const statusBadge = getStatusBadge(item.status_laporan);
+                      const priorityBadge = getPriorityBadge(item.prioritas);
+                      const statusBadge = getStatusBadge(item.status);
 
                       return (
                         <tr
-                          key={item.idNumber}
+                          key={item.id}
                           className={`hover:bg-gray-50/70 transition-colors h-12 font-sans ${isEven ? 'bg-white' : 'bg-stone-50/50'
                             }`}
                         >
@@ -483,7 +479,7 @@ export default function ReportProblem({ laporans, summary, filterOptions, filter
                           </td>
                           <td className="p-3">
                             <span className="text-[10px] font-mono font-black border border-gray-250 bg-stone-100/80 text-gray-700 px-2 py-0.5 rounded-[4px] leading-none whitespace-nowrap uppercase">
-                              {item.stasiun_lokasi}
+                              {item.stasiun}
                             </span>
                           </td>
                           <td className="p-3 text-gray-900 font-medium truncate max-w-[120px] uppercase" title={item.kategori_aset}>
@@ -516,7 +512,7 @@ export default function ReportProblem({ laporans, summary, filterOptions, filter
                             {item.nama_teknisi || '-'}
                           </td>
                           <td className="p-3 text-center font-mono font-bold text-gray-600">
-                            {item.respon_time || '-'}
+                            {item.response_time || '-'}
                           </td>
                           <td className="p-3 text-center font-mono font-bold text-gray-600">
                             {item.solving_time || '-'}
@@ -610,7 +606,7 @@ export default function ReportProblem({ laporans, summary, filterOptions, filter
               {/* Status + Priority badges */}
               <div className="flex items-center gap-3">
                 {(() => {
-                  const sb = getStatusBadge(selectedLaporan.status_laporan);
+                  const sb = getStatusBadge(selectedLaporan.status);
                   return (
                     <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold font-mono px-3 py-1.5 rounded-[4px] ${sb.className}`}>
                       <span className={`w-2 h-2 rounded-full ${sb.dotColor}`}></span>
@@ -619,7 +615,7 @@ export default function ReportProblem({ laporans, summary, filterOptions, filter
                   );
                 })()}
                 {(() => {
-                  const pb = getPriorityBadge(selectedLaporan.skala_prioritas);
+                  const pb = getPriorityBadge(selectedLaporan.prioritas);
                   return (
                     <span className={`text-[10px] font-mono font-bold px-3 py-1.5 rounded-[4px] uppercase ${pb.className}`}>
                       {pb.label}
@@ -632,7 +628,7 @@ export default function ReportProblem({ laporans, summary, filterOptions, filter
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { label: 'Tanggal Lapor', value: selectedLaporan.tanggal_lapor },
-                  { label: 'Stasiun / Lokasi', value: selectedLaporan.stasiun_lokasi },
+                  { label: 'Stasiun / Lokasi', value: selectedLaporan.stasiun },
                   { label: 'Kategori Aset', value: selectedLaporan.kategori_aset },
                   { label: 'Equipment', value: selectedLaporan.equipment || '-' },
                   { label: 'Nama Pelapor', value: selectedLaporan.nama_pelapor },
@@ -640,11 +636,11 @@ export default function ReportProblem({ laporans, summary, filterOptions, filter
                   { label: 'Nama Teknisi', value: selectedLaporan.nama_teknisi || '-' },
                   { label: 'Bulan', value: selectedLaporan.bulan },
                   { label: 'Waktu Melapor', value: selectedLaporan.waktu_melapor || '-' },
-                  { label: 'Waktu Respon', value: selectedLaporan.waktu_respon_teknisi || '-' },
+                  { label: 'Waktu Respon', value: selectedLaporan.waktu_respon || '-' },
                   { label: 'Waktu Selesai', value: selectedLaporan.waktu_selesai || '-' },
-                  { label: 'Respon Time', value: selectedLaporan.respon_time || '-' },
+                  { label: 'Respon Time', value: selectedLaporan.response_time || '-' },
                   { label: 'Solving Time', value: selectedLaporan.solving_time || '-' },
-                  { label: 'WR Doc Nomor', value: selectedLaporan.wr_doc_nomor || '-' },
+                  { label: 'WR Doc Nomor', value: selectedLaporan.wr_doc_no || '-' },
                   { label: 'Status Eskalasi', value: selectedLaporan.status_eskalasi || '-' },
                 ].map(({ label, value }) => (
                   <div key={label}>

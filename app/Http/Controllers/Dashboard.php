@@ -85,7 +85,7 @@ class Dashboard extends Controller
         });
 
         // 3. Count only active or open incidents from database (for Open Orders KPI)
-       $data_close = (clone $baseQuery)
+       $data_open = (clone $baseQuery)
          ->where('status', 'Open')
          ->count();
 
@@ -105,7 +105,7 @@ class Dashboard extends Controller
 
         $data_dashboard = [
             'data_perangkat' => $data_perangkat,
-            'data_close' => $data_close,
+            'data_open' => $data_open,
             'incidents' => $mapped_incidents,
             'month_start' => $currentMonthStart,
             'month_end' => $currentMonthEnd,

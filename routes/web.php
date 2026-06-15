@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Incident;
+use App\Http\Controllers\ReportProblemController;
 use App\Http\Controllers\ShiftScheduleController;
 use App\Http\Controllers\WhatsAppController;
 
@@ -17,7 +18,7 @@ Route::middleware(['auth'])->group(function () {
     //route on dashboard
     Route::get('dashboard', [Dashboard::class, 'Index'])->name('dashboard');
 
-    Route::get('report-problem', [Dashboard::class, 'Index'])->name('report-problem');
+    Route::get('report-problem', [ReportProblemController::class, 'index'])->name('report-problem');
 
     Route::get('incident', [Incident::class, 'Index'])->name('incident');
     

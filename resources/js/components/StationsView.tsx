@@ -99,7 +99,7 @@ function getStationIncidentCount(
     'HLM': ['halim'],
     'KWG': ['karawang'],
     'PDL': ['padalarang'],
-    'TGL': ['tegalluar'],
+    'TGR': ['tegalluar'],
   };
 
   const stationPatterns = patterns[code] || [];
@@ -203,7 +203,7 @@ export default function StationsView({
             if (stationCodeUpper === 'PDL') {
               return shiftCodeUpper.includes('PDL') || shiftCodeUpper.includes('PDG');
             }
-            if (stationCodeUpper === 'TGL') {
+            if (stationCodeUpper === 'TGR') {
               return shiftCodeUpper.includes('TGL') || shiftCodeUpper.includes('TGR');
             }
             return false;

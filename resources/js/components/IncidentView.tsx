@@ -294,9 +294,9 @@ export default function IncidentView({ incident_log, data_count }: Props) {
 
   // --- 3. EXPORT EXCEL VIA SHEETJS ---
   const handleExport = () => {
-    if (filteredIncidents.length === 0) return;
+    if (incident_log.data_incident.data.length === 0) return;
 
-    const dataToExport = filteredIncidents.map((inc) => ({
+    const dataToExport = incident_log.data_incident.data.map((inc) => ({
       'Nomor Tiket': inc.nomor_tiket,
       'Tanggal Lapor': inc.tanggal_lapor,
       'Stasiun': inc.stasiun,
@@ -357,7 +357,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
   ).length;
 
   // --- 5. PAGINATION LOGIC ---
-  const totalRows = filteredIncidents.length;
+  const totalRows = incident_log.data_incident.total;
   const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
 
   // Guard current page range
@@ -420,7 +420,7 @@ export default function IncidentView({ incident_log, data_count }: Props) {
           <div className="flex items-center gap-3 select-none">
             <button
               onClick={handleExport}
-              disabled={filteredIncidents.length === 0}
+              disabled={incident_log.data_incident.data.length === 0}
               className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-250 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-[4px] cursor-pointer transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="w-3.5 h-3.5" />

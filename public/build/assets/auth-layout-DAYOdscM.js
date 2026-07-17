@@ -1,0 +1,11 @@
+import{e as l}from"./button-DXmA5ZOg.js";import{j as e,$ as r}from"./app-44bK2inC.js";/**
+ * @license lucide-react v0.475.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const d=[["path",{d:"M21 12a9 9 0 1 1-6.219-8.56",key:"13zald"}]],h=l("LoaderCircle",d);/**
+ * @license lucide-react v0.475.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const i=[["path",{d:"M12 17v4",key:"1riwvh"}],["path",{d:"m15.2 4.9-.9-.4",key:"12wd2u"}],["path",{d:"m15.2 7.1-.9.4",key:"1r2vl7"}],["path",{d:"m16.9 3.2-.4-.9",key:"3zbo91"}],["path",{d:"m16.9 8.8-.4.9",key:"1qr2dn"}],["path",{d:"m19.5 2.3-.4.9",key:"1rjrkq"}],["path",{d:"m19.5 9.7-.4-.9",key:"heryx5"}],["path",{d:"m21.7 4.5-.9.4",key:"17fqt1"}],["path",{d:"m21.7 7.5-.9-.4",key:"14zyni"}],["path",{d:"M22 13v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7",key:"1tnzv8"}],["path",{d:"M8 21h8",key:"1ev6f3"}],["circle",{cx:"18",cy:"6",r:"3",key:"1h7g24"}]],n=l("MonitorCog",i);function m({children:t,title:s,description:a}){return e.jsxs("div",{className:"grid grid-cols-2 gap-x-3 h-screen max-w-full ",children:[e.jsx("div",{className:"flex items-center gap-x-3 justify-center gap-6 p-6 md:p-10",children:e.jsx("div",{className:"w-full max-w-sm",children:e.jsxs("div",{className:"flex flex-col gap-8",children:[e.jsxs("div",{className:"flex flex-col items-center gap-4",children:[e.jsxs(r,{href:route("home"),className:"flex flex-col items-center gap-2 font-medium",children:[e.jsx("div",{className:"mb-1 flex h-9 w-9 items-center justify-center rounded-md",children:e.jsx(n,{})}),e.jsx("span",{className:"sr-only",children:s})]}),e.jsxs("div",{className:"space-y-2 text-center",children:[e.jsx("h1",{className:"text-xl font-medium",children:s}),e.jsx("p",{className:"text-muted-foreground text-center text-sm",children:a})]})]}),t]})})}),e.jsx("div",{className:"w-full h-full object-fill p-4",children:e.jsx("img",{src:"/integrations.webp",alt:"Integrations",className:"w-full h-full object-fill rounded-2xl"})})]})}function p({children:t,title:s,description:a,...c}){return e.jsx(m,{title:s,description:a,...c,children:t})}export{p as A,h as L};

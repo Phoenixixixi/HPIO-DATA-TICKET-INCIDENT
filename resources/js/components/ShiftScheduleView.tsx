@@ -663,11 +663,23 @@ export default function ShiftScheduleView({ shifts: initialShifts, month, config
                         <button
                             onClick={() => {
                                 const nextMonth = addMonths(month, 1);
-                                if (confirm(`Copy karyawan ke bulan ${nextMonth}? Shift akan direset LIBUR.`)) {
+                                if (confirm(`Copy jadwal bulan ini ke bulan ${nextMonth}? Shift akan disalin sama persis.`)) {
                                     router.post('/shift-schedule/copy-month', {
                                         from_month: month,
                                         to_month: nextMonth,
-                                    }, { preserveState: false });
+                                        overwrite: false,
+                                    }, {
+                                        preserveState: false,
+                                        onError: () => {
+                                            if (confirm(`Jadwal bulan ${nextMonth} sudah ada. Timpa dengan jadwal bulan ini?`)) {
+                                                router.post('/shift-schedule/copy-month', {
+                                                    from_month: month,
+                                                    to_month: nextMonth,
+                                                    overwrite: true,
+                                                }, { preserveState: false });
+                                            }
+                                        },
+                                    });
                                 }
                             }}
                             className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-250 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-[4px] transition-colors shadow-sm"

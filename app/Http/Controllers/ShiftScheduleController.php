@@ -171,36 +171,44 @@ class ShiftScheduleController extends Controller
         $validated = $request->validate([
             'from_month' => 'required|date_format:Y-m',
             'to_month'   => 'required|date_format:Y-m',
+            'overwrite'  => 'boolean',
         ]);
 
         $existing = ShiftSchedule::where('month', $validated['to_month'])->count();
         if ($existing > 0) {
-            return response()->json(['success' => false, 'message' => 'Target month already has data.'], 422);
+            if (empty($validated['overwrite'])) {
+                return back()->withErrors(['to_month' => 'Target month already has data.']);
+            }
+            // Overwrite: delete existing data for target month first
+            ShiftSchedule::where('month', $validated['to_month'])->delete();
         }
 
         $sourceRows = ShiftSchedule::where('month', $validated['from_month'])->get();
-        
+
         $year = (int) substr($validated['to_month'], 0, 4);
         $month = (int) substr($validated['to_month'], 5, 2);
         $daysInMonth = Carbon::create($year, $month, 1)->daysInMonth;
 
-        $initialShifts = [];
-        for ($i = 1; $i <= $daysInMonth; $i++) {
-            $initialShifts[$i] = 'LIBUR';
-        }
-
         foreach ($sourceRows as $row) {
+            // Start with the source shifts so the schedule is preserved.
+            // Days that don't exist in the target month are dropped;
+            // any extra days (target longer than source) default to LIBUR.
+            $copiedShifts = [];
+            for ($i = 1; $i <= $daysInMonth; $i++) {
+                $copiedShifts[$i] = $row->shifts[$i] ?? 'LIBUR';
+            }
+
             ShiftSchedule::create([
                 'employee_name' => $row->employee_name,
                 'nip'           => $row->nip,
                 'no_hp'         => $row->no_hp,
                 'month'         => $validated['to_month'],
-                'shifts'        => $initialShifts,
+                'shifts'        => $copiedShifts,
                 'sort_order'    => $row->sort_order,
             ]);
         }
 
-        return response()->json(['success' => true]);
+        return redirect()->route('shift-schedule', ['month' => $validated['to_month']]);
     }
 
     /**

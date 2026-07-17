@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Exclude Waha webhook from CSRF — it's called by an external service
+        $middleware->validateCsrfTokens(except: [
+            'webhook/form-report',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

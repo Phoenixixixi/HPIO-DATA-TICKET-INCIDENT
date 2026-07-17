@@ -7,6 +7,7 @@ use App\Http\Controllers\Incident;
 use App\Http\Controllers\ReportProblemController;
 use App\Http\Controllers\ShiftScheduleController;
 use App\Http\Controllers\WhatsAppController;
+use App\Http\Controllers\FormReportController;
 
 
 
@@ -70,7 +71,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('shift-schedule/configs', [ShiftScheduleController::class, 'updateConfigs'])->name('shift-schedule.configs');
     Route::delete('shift-schedule/{id}', [ShiftScheduleController::class, 'destroy'])->name('shift-schedule.destroy');
     Route::post('/send-whatsapp', [WhatsAppController::class, 'send']);
+
+    // Form Report routes
+    Route::get('form-report', [FormReportController::class, 'index'])->name('form-report');
 });
+
+// Waha webhook — public (no auth), receives WhatsApp message events
+Route::post('webhook/form-report', [FormReportController::class, 'webhook'])->name('form-report.webhook');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

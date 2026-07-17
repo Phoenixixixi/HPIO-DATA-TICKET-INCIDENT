@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard, ShieldAlert, Building2, FileCode2, BookOpen, Folder, ClipboardList, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Building2, FileCode2, BookOpen, Folder, ClipboardList, CalendarDays, ClipboardCheck } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -32,6 +32,11 @@ const mainNavItems: NavItem[] = [
         title: 'Shift Schedule',
         url: '/shift-schedule',
         icon: CalendarDays,
+    },
+    {
+        title: 'Form Report',
+        url: '/form-report',
+        icon: ClipboardCheck,
     },
 ];
 
